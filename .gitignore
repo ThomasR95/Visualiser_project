@@ -1,0 +1,10 @@
+IgnoreCommit/
+Debug/
+Release/
+x64/
+Project2/imgui/
+Project2/imgui-sfml/
+Project2/portaudio/
+Project2/Debug/
+Project2/Release/
+.vs/
