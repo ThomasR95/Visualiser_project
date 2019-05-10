@@ -14,6 +14,7 @@
 #include "TesseractVis.h"
 #include "VortexVis.h"
 #include "DoorwayVis.h"
+#include "AngelVis.h"
 
 #include <fstream>
 
@@ -82,8 +83,6 @@ void four1(float* data, unsigned long nn)
  {
 	 int checkSize = framesPerBuffer;
 
-	 gameConfig->framesReadable = false;
-
 	 int numChannels = gameConfig->params.channelCount;
 
 	 if(gameConfig->frames.size() > checkSize)
@@ -102,13 +101,13 @@ void four1(float* data, unsigned long nn)
 
 		 SAMPLE spl = (splLeft + splRight) / 2.f;
 
-		 if ((float)spl < 0)
-			 spl *= -1;
+		 //if ((float)spl < 0)
+			// spl *= -1;
 
-		 if (spl > gameConfig->frameHi && spl > gameConfig->cutoff)
-			 gameConfig->frameHi = spl;
+		// if (spl > gameConfig->frameHi && spl > gameConfig->cutoff)
+		//	 gameConfig->frameHi = spl;
 
-		gameConfig->frames.push_back(spl);
+		gameConfig->frames.push_back(fabs(spl));
 		s++;
 	 }
 
@@ -116,25 +115,34 @@ void four1(float* data, unsigned long nn)
 
 	 four1(gameConfig->FFTdata.data(), gameConfig->FFTdata.size()/2);
 
-	 gameConfig->FrequencyData.clear();
-	 for (int it = 0; it < gameConfig->FFTdata.size() / 2; it++)
-	 {
-		 auto re = gameConfig->FFTdata[it * 2];
-		 auto im = gameConfig->FFTdata[it * 2 + 1];
-		 auto magnitude = std::sqrt(re*re + im*im);
-		 //auto magnitude_dB = 20 * log10(magnitude);
-		 gameConfig->FrequencyData.push_back(magnitude);
+	 float factor = 20;
 
-		 //store data for bass and treble
-		 if (it < 20 && magnitude > gameConfig->bassHi)
-			 gameConfig->bassHi = magnitude;
+	 { //lock for frequency data
+		 std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
 
-		 if (it > framesPerBuffer/4 && it < framesPerBuffer / 2 && magnitude > gameConfig->trebleHi)
-			 gameConfig->trebleHi = magnitude;
-	 }
+		 gameConfig->FrequencyData.clear();
+		 for (int it = 0; it < gameConfig->FFTdata.size() / 2; it++)
+		 {
 
+			 auto re = gameConfig->FFTdata[it * 2];
+			 auto im = gameConfig->FFTdata[it * 2 + 1];
+			 auto magnitude = std::sqrt(re*re + im*im);
+			 //auto magnitude_dB = 20 * log10(magnitude);
+			 float point = it / factor + 0.3;
+			 magnitude = magnitude*atan(point);
+			 gameConfig->FrequencyData.push_back(magnitude);
 
-	 gameConfig->framesReadable = true;
+			 //store data for bass and treble
+			 if (it < 15 && magnitude > gameConfig->bassHi)
+				 gameConfig->bassHi = magnitude;
+
+			 if (it > framesPerBuffer / 4 && it < framesPerBuffer / 2 && magnitude > gameConfig->trebleHi)
+				 gameConfig->trebleHi = magnitude;
+
+			 if (magnitude > gameConfig->frameHi && magnitude > gameConfig->cutoff)
+				 gameConfig->frameHi = magnitude;
+		 }
+	 } //end lock
      return paContinue;
  }
 
@@ -698,8 +706,9 @@ void render()
 
 #ifdef _DEBUG
 	//draw debug audio bars
-	if (gameConfig->framesReadable)
 	{
+		std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
+
 		auto frames = gameConfig->FrequencyData;
 		float barW = gameConfig->scrW / (frames.size() / 2);
 
@@ -709,13 +718,6 @@ void render()
 			gameConfig->bars[bar].setSize({ barW, height });
 			gameConfig->bars[bar].setOrigin({ 0.f, height });
 			gameConfig->bars[bar].setPosition({ barW*bar, gameConfig->scrH });
-			gameConfig->m_window.draw(gameConfig->bars[bar]);
-		}
-	}
-	else
-	{
-		for (int bar = 0; bar < gameConfig->bars.size(); bar++)
-		{
 			gameConfig->m_window.draw(gameConfig->bars[bar]);
 		}
 	}
@@ -753,7 +755,7 @@ int main()
 	ImGui::SFML::Init(gameConfig->m_window);
 
 	//setup visualisers
-	gameConfig->m_visualisers.resize(4);
+	gameConfig->m_visualisers.resize(5);
 
 	gameConfig->m_visualisers[0] = { "StarFall", true, std::make_shared<StarFallVis>() };
 	gameConfig->m_visualisers[0].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
@@ -766,6 +768,9 @@ int main()
 
 	gameConfig->m_visualisers[3] = { "Doorway", true, std::make_shared<DoorwayVis>() };
 	gameConfig->m_visualisers[3].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+
+	gameConfig->m_visualisers[4] = { "Archangel", true, std::make_shared<AngelVis>() };
+	gameConfig->m_visualisers[4].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
 
 	gameConfig->m_currentVis = gameConfig->m_visualisers[0].vis.get();
 

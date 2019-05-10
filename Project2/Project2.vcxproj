@@ -138,7 +138,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AngelVis.cpp" />
     <ClCompile Include="DoorwayVis.cpp" />
+    <ClCompile Include="FrequencyWave.cpp" />
     <ClCompile Include="imgui-sfml\imgui-SFML.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -152,8 +154,10 @@
     <None Include="Shaders\wave.frag" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AngelVis.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="DoorwayVis.h" />
+    <ClInclude Include="FrequencyWave.h" />
     <ClInclude Include="StarFallVis.h" />
     <ClInclude Include="Visualiser.h" />
     <ClInclude Include="TesseractVis.h" />

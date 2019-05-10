@@ -1,6 +1,7 @@
 #pragma once
 #include "Visualiser.h"
 #include <deque>
+#include "FrequencyWave.h"
 class StarFallVis :
 	public Visualiser
 {
@@ -37,6 +38,7 @@ public:
 	float catchupR;
 	float catchupT;
 
+	FrequencyWave m_waveform;
 	
 };
 

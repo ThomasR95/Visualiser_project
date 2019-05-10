@@ -48,6 +48,12 @@
     <ClCompile Include="DoorwayVis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FrequencyWave.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AngelVis.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\wave.frag">
@@ -71,6 +77,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DoorwayVis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FrequencyWave.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AngelVis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

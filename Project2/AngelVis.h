@@ -1,14 +1,15 @@
 #pragma once
 #include "Visualiser.h"
 #include <deque>
+
 #include "FrequencyWave.h"
 
-class DoorwayVis :
+class AngelVis :
 	public Visualiser
 {
 public:
-	DoorwayVis();
-	~DoorwayVis();
+	AngelVis();
+	~AngelVis();
 	void init(sf::RenderWindow * wind, sf::RenderTexture * rTex);
 	void render(float frameHi, float frameAverage, float frameMax);
 	void resetPositions(float scrW, float scrH, float ratio);
@@ -19,46 +20,35 @@ public:
 	sf::RectangleShape m_RTPlane;
 	sf::RectangleShape m_shaderPlane;
 	sf::RectangleShape m_skyPlane;
-
-	sf::RenderTexture m_RT2;
-	sf::RectangleShape m_RTPlane2;
-
-	sf::Shader m_shader2;
-
+	sf::RectangleShape m_rightBar;
+	sf::RectangleShape m_bottomBar;
 	sf::FloatRect tRect;
 	sf::FloatRect skyRect;
 
 	std::vector<float> rgb;
 
-	float m_degrees;
-	float m_degreesPerSec;
-	float m_degreesPerFrame;
+	float m_radians;
+	float m_radiansPerSec;
 
-	float m_boxWidth;
-	float m_boxHeight;
-
-	sf::RectangleShape m_topBox;
-	sf::RectangleShape m_bottomBox;
-	sf::RectangleShape m_leftBox;
-	sf::RectangleShape m_rightBox;
+	float m_spotRadius = 50.f;
+	sf::VertexArray m_line;
+	sf::VertexArray m_line2;
+	sf::Vector2f linePos;
+	sf::Vector2f lastLinePos;
+	sf::Vector2f line2Pos;
+	sf::Vector2f lastLine2Pos;
+	std::deque<sf::CircleShape> spots;
 
 	sf::RenderStates states = sf::RenderStates::Default;
 	sf::RenderStates addStates = sf::RenderStates::Default;
-	sf::RenderStates contrastStates = sf::RenderStates::Default;
 
 	sf::Clock m_timer;
 
 	float leftOverflow;
 	float topOverflow;
 
-	float m_frameAverage;
-
-	float m_offset;
-
 	float m_rot;
-	
+
 	FrequencyWave m_waveform;
-	
-	
 };
 

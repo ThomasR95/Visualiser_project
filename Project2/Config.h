@@ -11,6 +11,8 @@
 #include "Visualiser.h"
 
 #include <memory>
+#include <deque>
+#include <mutex>
 
 #define PI 3.14159265359
 
@@ -69,6 +71,7 @@ struct Config
 	std::vector<SAMPLE> frames;
 	std::vector<SAMPLE> FFTdata;
 	std::vector<SAMPLE> FrequencyData;
+	std::mutex FreqDataMutex;
 	SAMPLE bassHi;
 	SAMPLE bassMax;
 	SAMPLE bassAverage;
@@ -84,7 +87,6 @@ struct Config
 	std::vector<std::pair<std::string, int>> deviceList;
 	paTestData *streamData;
 	PaStream* AudioStr;
-	bool framesReadable;
 	bool leftChannel = true;
 	int numChannels = 2;
 

@@ -151,10 +151,19 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax)
 	m_RT->draw(m_skyPlane);
 	m_RT->draw(m_shaderPlane, states);
 
+	m_waveform.update();
+
+	m_waveform.rotation(0);
+	m_waveform.position({ 0.f, m_scrH });
+	m_RT->draw(m_waveform);
+
+	m_waveform.rotation(180);
+	m_waveform.position({ m_scrW, 0.f });
+	m_RT->draw(m_waveform);
+	
+
 	//m_RT->draw(m_Rim);
 	//m_RT->draw(m_Hole);
-
-	
 
 	m_RT->display();
 
@@ -202,6 +211,10 @@ void DoorwayVis::resetPositions(float scrW, float scrH, float ratio)
 	m_RT2.create(scrW, scrH);
 	m_RT2.clear({ 0,0,0,255 });
 	m_RT2.setSmooth(true);
+
+	m_waveform.init(m_scrW, -m_scrH / 6);
+	m_waveform.position({ 0, m_scrH });
+	m_waveform.setColour(sf::Color::White);
 
 	float dist = 3.5;
 	float width = m_scrH / 100;
