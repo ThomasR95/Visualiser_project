@@ -452,7 +452,9 @@ void menu()
 
 	ImGui::NextColumn();
 
+	ImGui::PushStyleColor(ImGuiCol_Text, col_light3);
 	ImGui::Checkbox("Cycle", &gameConfig->cycleVis);
+	ImGui::PopStyleColor();
 
 	ImGui::TextColored(gameConfig->cycleVis ? normalTextCol : greyoutCol, "Time: %ds", gameConfig->cycleTime);
 	ImGui::SameLine();
