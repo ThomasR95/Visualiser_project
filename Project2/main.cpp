@@ -216,7 +216,7 @@ void initWindow(bool firstStart = false)
 	gameConfig->m_RT.create(gameConfig->scrW, gameConfig->scrH);
 
 	gameConfig->m_currentWindow = &gameConfig->m_window;
-	gameConfig->m_window.setIcon(gameConfig->ico.getSize().x, gameConfig->ico.getSize().y, gameConfig->ico.getPixelsPtr());
+	
 
 	gameConfig->topLeftBox.setPosition(0, 0);
 	gameConfig->topLeftBox.setSize({ 20,20 });
@@ -241,6 +241,11 @@ void initWindow(bool firstStart = false)
 
 		SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
 		DwmExtendFrameIntoClientArea(gameConfig->m_window.getSystemHandle(), &margins);
+	}
+
+	if (gameConfig->ico.getPixelsPtr())
+	{
+		gameConfig->m_window.setIcon(gameConfig->ico.getSize().x, gameConfig->ico.getSize().y, gameConfig->ico.getPixelsPtr());
 	}
 }
 
@@ -891,7 +896,7 @@ int main()
 		//update audio data for this frame
 		if (gameConfig->frameHi != 0)
 		{
-			gameConfig->frame = (gameConfig->frameHi);
+			gameConfig->frame = gameConfig->frameHi;
 			if (gameConfig->frame < 0)
 				gameConfig->frame *= -1;
 			gameConfig->runningAverage -= gameConfig->runningAverage / 30;
