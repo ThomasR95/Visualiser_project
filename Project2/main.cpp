@@ -15,6 +15,8 @@
 #include "VortexVis.h"
 #include "DoorwayVis.h"
 #include "AngelVis.h"
+#include "BetweenVis.h"
+
 
 #include <fstream>
 
@@ -421,27 +423,30 @@ void menu()
 	ImGui::TextColored(normalTextCol, "Choose Visualisers");
 	ImGui::TextColored({ 0.5, 0.5, 0.5, 1.0 }, "In Cycle  Play   Name");
 	ImGui::BeginChild("Choose Visualiser", { -1, 150 });
-	for (auto& v : gameConfig->m_visualisers)
+	for (int v = 0; v < gameConfig->m_visualisers.size(); v++)
 	{
+		auto& vis = gameConfig->m_visualisers[v];
+		
 		ImGui::SetCursorPosX(18);
-		ImGui::PushID((v.id + "tick").c_str());
-		ImGui::Checkbox("", &v.inCycle);
+		ImGui::PushID((vis.id + "tick").c_str());
+		ImGui::Checkbox("", &vis.inCycle);
 		ImGui::PopID();
 		ImGui::SameLine(74);
 
-		ImGui::PushID((v.id + "playbtn").c_str());
+		ImGui::PushID((vis.id + "playbtn").c_str());
 		if (ImGui::Button(">", { 20, 20 }))
 		{
-			v.vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-			v.vis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
-			v.vis->reloadShader();
-			gameConfig->m_currentVis = v.vis.get();
+			vis.vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+			vis.vis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
+			vis.vis->reloadShader();
+			gameConfig->m_currentVis = vis.vis.get();
+			gameConfig->visIdx = v;
 
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::PopID();
 		ImGui::SameLine(119);
-		ImGui::TextColored(normalTextCol, v.id.c_str());
+		ImGui::TextColored(gameConfig->visIdx == v ? col_light3 : col_light2, vis.id.c_str());
 	}
 	ImGui::EndChild();
 
@@ -573,15 +578,15 @@ void menu()
 				Pa_OpenStream(&gameConfig->AudioStr, &gameConfig->params, nullptr, sRate, FRAMES_PER_BUFFER, paClipOff, recordCallback, gameConfig->streamData);
 				Pa_StartStream(gameConfig->AudioStr);
 
-				gameConfig->frameMax = 0.01;
+				gameConfig->frameMax = 0.05;
 				gameConfig->frameHi = 0;
 				gameConfig->runningAverage = 0;
 
-				gameConfig->bassMax = 0.01;
+				gameConfig->bassMax = 0.05;
 				gameConfig->bassHi = 0;
 				gameConfig->bassAverage = 0;
 
-				gameConfig->trebleMax = 0.01;
+				gameConfig->trebleMax = 0.05;
 				gameConfig->trebleHi = 0;
 				gameConfig->trebleAverage = 0;
 
@@ -807,7 +812,7 @@ int main()
 	ImGui::SFML::Init(gameConfig->m_window);
 
 	//setup visualisers
-	gameConfig->m_visualisers.resize(5);
+	gameConfig->m_visualisers.resize(6);
 
 	gameConfig->m_visualisers[0] = { "StarFall", true, std::make_shared<StarFallVis>() };
 	gameConfig->m_visualisers[0].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
@@ -823,6 +828,9 @@ int main()
 
 	gameConfig->m_visualisers[4] = { "Archangel", true, std::make_shared<AngelVis>() };
 	gameConfig->m_visualisers[4].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+
+	gameConfig->m_visualisers[5] = { "Between", true, std::make_shared<BetweenVis>() };
+	gameConfig->m_visualisers[5].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
 
 	gameConfig->m_currentVis = gameConfig->m_visualisers[0].vis.get();
 
