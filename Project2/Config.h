@@ -48,6 +48,8 @@ struct Config
 	float scrW;
 	float scrH;
 	float ratio;
+	int scrX;
+	int scrY;
 
 	sf::RenderWindow m_window;
 	sf::RenderWindow* m_currentWindow;
@@ -127,4 +129,22 @@ struct Config
 	std::vector<sf::RectangleShape> bars;
 
 	sf::Clock m_timer;
+
+	std::string m_settingsFile;
+	std::vector<std::string> m_presetNames;
+	int m_presetIdx;
+	std::vector<char> m_settingsFileBoxName;
+	bool saveVisInfo = true;
+	bool saveWindowInfo = false;
+	bool clearVisInfo = false;
+	bool clearWindowInfo = false;
+	bool windowSettingsChanged = false;
+
+	void saveToSettingsFile(const std::string& presetName);
+	void loadFromSettingsFile(const std::string& presetName);
+
+	void loadPresetList();
+
+private:
+	bool gotoPresetLine(std::ifstream& file, const std::string& presetName, std::ofstream* tmp = nullptr);
 };

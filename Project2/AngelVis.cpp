@@ -193,6 +193,8 @@ void AngelVis::render(float frameHi, float frameAverage, float frameMax)
 		m_window->draw(m_RTPlane);
 
 	m_transparentShader.setUniform("minOpacity", 0);
+	skyRect.top += 0.1f;
+	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), sf::Uint8(100 * scale) });
 	m_window->draw(m_skyPlane, addStates);
 }

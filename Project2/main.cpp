@@ -181,6 +181,9 @@ void initWindow(bool firstStart = false)
 		gameConfig->scrH = gameConfig->fullScrH;
 		if (!gameConfig->wasFullScreen || firstStart)
 		{
+			auto pos = gameConfig->m_window.getPosition();
+			gameConfig->scrX = pos.x;
+			gameConfig->scrY = pos.y;
 			if (gameConfig->transparent)
 			{
 				gameConfig->scrW = gameConfig->fullScrW + 1;
@@ -201,7 +204,10 @@ void initWindow(bool firstStart = false)
 		gameConfig->scrW = gameConfig->minScrW;
 		gameConfig->scrH = gameConfig->minScrH;
 		if (gameConfig->wasFullScreen || firstStart)
+		{
 			gameConfig->m_window.create(sf::VideoMode(gameConfig->scrW, gameConfig->scrH), "VisualiStar", 0);
+			gameConfig->m_window.setPosition({ gameConfig->scrX, gameConfig->scrY });
+		}
 		else
 		{
 			gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
@@ -209,8 +215,13 @@ void initWindow(bool firstStart = false)
 			v.setSize({ gameConfig->scrW, gameConfig->scrH });
 			v.setCenter({ gameConfig->scrW / 2, gameConfig->scrH / 2 });
 			gameConfig->m_window.setView(v);
-		}
 
+			auto pos = gameConfig->m_window.getPosition();
+			if (gameConfig->scrX != pos.x || gameConfig->scrY != pos.y)
+			{
+				gameConfig->m_window.setPosition({ gameConfig->scrX, gameConfig->scrY });
+			}
+		}
 	}
 
 	gameConfig->m_RT.create(gameConfig->scrW, gameConfig->scrH);
@@ -290,7 +301,7 @@ void menu()
 	ImVec4 greyoutCol(0.3, 0.3, 0.3, 1.0);
 	ImVec4 normalTextCol(col_light3);
 
-	ImGui::Begin("VisualiStar", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+	ImGui::Begin("VisualiStar", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
 
 	ImDrawList* dList = ImGui::GetWindowDrawList();
 
@@ -567,7 +578,8 @@ void menu()
 	{
 		for (auto& dev : gameConfig->deviceList)
 		{
-			if (ImGui::Button(dev.first.c_str(), { -1, 20 }))
+			bool active = gameConfig->devIdx == dev.second;
+			if(ImGui::Selectable(dev.first.c_str(), &active))
 			{
 				Pa_StopStream(gameConfig->AudioStr);
 				Pa_CloseStream(gameConfig->AudioStr);
@@ -609,6 +621,126 @@ void menu()
 	ImGui::PopItemWidth();
 
 	ImGui::Columns();
+
+	if (ImGui::Button("Presets", { -1,20 }))
+	{
+		ImGui::OpenPopup("Presets");
+	}
+	if(ImGui::BeginPopup("Presets", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
+	{
+		ImGui::SetWindowSize({ 400,-1 });
+		std::string prevName = "";
+		if (gameConfig->m_presetNames.size()) prevName = gameConfig->m_presetNames[gameConfig->m_presetIdx];
+		if (ImGui::BeginCombo("Presets", prevName.c_str()))
+		{
+			for (int p = 0; p < gameConfig->m_presetNames.size(); p++)
+			{
+				bool selected = gameConfig->m_presetIdx == p;
+				if (ImGui::Selectable(gameConfig->m_presetNames[p].c_str(), &selected))
+				{
+					gameConfig->m_presetIdx = p;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Load", { 100,20 }) && gameConfig->m_presetNames.size())
+		{
+			gameConfig->loadFromSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
+			gameConfig->m_settingsFileBoxName.clear();
+
+			if (gameConfig->windowSettingsChanged)
+			{
+				initWindow();
+				gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
+				gameConfig->m_currentVis->reloadShader();
+				gameConfig->windowSettingsChanged = false;
+			}
+		}
+		ImGui::Separator();
+		ImGui::TextColored(normalTextCol, "Save Preset");
+		ImGui::InputText("Name", gameConfig->m_settingsFileBoxName.data(), 30);
+		ImGui::SameLine();
+		if (ImGui::Button("x", { 20,20 }))
+		{
+			gameConfig->m_settingsFileBoxName.clear();
+			gameConfig->m_settingsFileBoxName.resize(30);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Use Current", { -1,20 }) && gameConfig->m_presetNames.size())
+		{
+			gameConfig->m_settingsFileBoxName.clear();
+			gameConfig->m_settingsFileBoxName.resize(30);
+			int i = 0;
+			for (auto& c : gameConfig->m_presetNames[gameConfig->m_presetIdx])
+				gameConfig->m_settingsFileBoxName[i++] = c;
+		}
+
+		bool overwriting = false;
+		for (auto& n : gameConfig->m_presetNames)
+		{
+			if (n == std::string(gameConfig->m_settingsFileBoxName.data()))
+			{
+				overwriting = true;
+				break;
+			}
+		}
+
+		std::string saveCheckBox = "Save";
+		if (overwriting) saveCheckBox = "Update";
+
+		ImGui::PushID("VisSave");
+		ImGui::TextColored(normalTextCol, "Visualiser Settings");
+		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveVisInfo))
+		{
+			if (gameConfig->saveVisInfo)
+				gameConfig->clearVisInfo = false;
+		}
+		if (overwriting)
+		{
+			ImGui::SameLine();
+			if (ImGui::Checkbox("Clear", &gameConfig->clearVisInfo))
+			{
+				if (gameConfig->clearVisInfo)
+					gameConfig->saveVisInfo = false;
+			}
+		}
+		ImGui::PopID();
+		ImGui::PushID("WndSave");
+		ImGui::TextColored(normalTextCol, "Window Settings");
+		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveWindowInfo))
+		{
+			if (gameConfig->saveWindowInfo)
+				gameConfig->clearWindowInfo = false;
+		}
+		if (overwriting)
+		{
+			ImGui::SameLine();
+			if (ImGui::Checkbox("Clear", &gameConfig->clearWindowInfo))
+			{
+				if (gameConfig->clearWindowInfo)
+					gameConfig->saveWindowInfo = false;
+			}
+		}
+		ImGui::PopID();
+
+		std::string saveName = "Save";
+		if (overwriting) saveName = "Overwrite";
+
+		if (ImGui::Button(saveName.c_str(), { -1,20 }))
+		{
+			std::string name(gameConfig->m_settingsFileBoxName.data());
+			if (std::find(gameConfig->m_presetNames.begin(), gameConfig->m_presetNames.end(), name) == gameConfig->m_presetNames.end())
+			{
+				gameConfig->m_presetNames.push_back(name);
+				gameConfig->m_presetIdx = gameConfig->m_presetNames.size() - 1;
+			}
+			gameConfig->saveToSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
+			gameConfig->m_settingsFileBoxName.clear();
+		}
+
+		ImGui::EndPopup();
+	}
 
 	ImGui::Separator();
 
@@ -745,6 +877,8 @@ void handleEvents()
 					gameConfig->lastMiddleClickPosition = sf::Mouse::getPosition(gameConfig->m_window);
 				auto mousePos = sf::Mouse::getPosition();
 				auto windowPos = mousePos - gameConfig->lastMiddleClickPosition;
+				gameConfig->scrX = windowPos.x;
+				gameConfig->scrY = windowPos.y;
 				gameConfig->m_window.setPosition(windowPos);
 			}
 		}
@@ -814,6 +948,9 @@ int main()
 	getWindowSizes();
 
 	gameConfig->ico.loadFromFile("icon1.png");
+	gameConfig->m_settingsFile = "presets.txt";
+	gameConfig->loadPresetList();
+	gameConfig->m_settingsFileBoxName.resize(30);
 
 	initWindow(true);
 	ImGui::SFML::Init(gameConfig->m_window);
