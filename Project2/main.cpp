@@ -845,6 +845,8 @@ void handleEvents()
 			{
 				auto windowPos = gameConfig->m_window.getPosition();
 				windowPos += sf::Vector2i(gameConfig->resizeBox.getPosition());
+				gameConfig->scrX = windowPos.x;
+				gameConfig->scrY = windowPos.y;
 				gameConfig->m_window.setPosition(windowPos);
 				gameConfig->minScrH = gameConfig->resizeBox.getGlobalBounds().height;
 				gameConfig->minScrW = gameConfig->resizeBox.getGlobalBounds().width;
