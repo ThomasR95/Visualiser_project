@@ -27,22 +27,21 @@ void StarFallVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	m_spot.setFillColor({ 255, 255, 255, 255 });
 	if (!m_textures.count("spot"))
 	{
-		sf::Texture tex;
-		tex.loadFromFile("spot.png");
-		tex.setSmooth(true);
-		m_textures["spot"] = tex;
+		m_textures["spot"] = std::make_shared<sf::Texture>();
+		m_textures["spot"]->loadFromFile("spot.png");
+		m_textures["spot"]->setSmooth(true);
+		m_textures["spot"]->setRepeated(true);
 	}
-	m_spot.setTexture(&m_textures["spot"]);
+	m_spot.setTexture(m_textures["spot"].get());
 
 	if (!m_textures.count("space"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("space.jpg");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["space"] = tex2;
+		m_textures["space"] = std::make_shared<sf::Texture>();
+		m_textures["space"]->loadFromFile("space.jpg");
+		m_textures["space"]->setSmooth(true);
+		m_textures["space"]->setRepeated(true);
 	}
-	m_skyPlane.setTexture(&m_textures["space"], false);
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	states.shader = &m_shader;
 	addStates.blendMode = sf::BlendAdd;
@@ -50,7 +49,7 @@ void StarFallVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	rgb = { 0, 0, 0 };
 }
 
-void StarFallVis::render(float frameHi, float frameAverage, float frameMax)
+void StarFallVis::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 	m_window->clear({ 0,0,0,0 });
 
@@ -184,8 +183,13 @@ void StarFallVis::render(float frameHi, float frameAverage, float frameMax)
 	spots.clear();
 	m_RT->display();
 
+	if (bgImage && !gameConfig->transparent)
+	{
+		//m_window->draw(m_RTPlane);
+	}
+
 	m_transparentShader.setUniform("minOpacity", gameConfig->minOpacity);
-	if (gameConfig->transparent)
+	if (gameConfig->transparent || bgImage)
 		m_window->draw(m_RTPlane, m_transparentStates);
 	else
 		m_window->draw(m_RTPlane);
@@ -209,6 +213,7 @@ void StarFallVis::resetPositions(float scrW, float scrH, float ratio)
 	spotPos = { scrW - scrW / (ratio * dist), scrH - scrH / dist };
 	m_spotRadius = scrW / 50;
 	m_spot.setPosition(spotPos);
+	m_spot.setTexture(m_textures["spot"].get());
 
 	//m_waveform.init(m_scrW, -m_scrH / 6);
 	m_waveform.init(m_scrH, true);
@@ -222,6 +227,7 @@ void StarFallVis::resetPositions(float scrW, float scrH, float ratio)
 
 	skyRect = sf::FloatRect(0, 0, scrW / 2, scrH / 2);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	m_RTPlane.setTexture(&m_RT->getTexture());
 	tRect = sf::FloatRect(m_RTPlane.getTextureRect());
@@ -243,8 +249,6 @@ void StarFallVis::reloadShader()
 {
 	if (!m_shader.loadFromFile("Shaders/wave.frag", sf::Shader::Type::Fragment))
 		std::cout << "Shader borken";
-
-
 
 	sf::Shader::bind(&m_shader);
 

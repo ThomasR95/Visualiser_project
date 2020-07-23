@@ -90,8 +90,9 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
 
 	int numChannels = gameConfig->params.channelCount;
 
+	//Erase old frames, leave enough in the vector for one checkSize
 	if (gameConfig->frames.size() > checkSize)
-		gameConfig->frames.erase(gameConfig->frames.begin(), gameConfig->frames.begin() + checkSize);
+		gameConfig->frames.erase(gameConfig->frames.begin(), gameConfig->frames.begin() + (gameConfig->frames.size()-checkSize));
 
 	SAMPLE *rptr = (SAMPLE*)inputBuffer;
 
@@ -106,48 +107,17 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
 
 		SAMPLE spl = (splLeft + splRight) / 2.f;
 
-		//if ((float)spl < 0)
-		   // spl *= -1;
+		spl = spl*spl;
 
-	   // if (spl > gameConfig->frameHi && spl > gameConfig->cutoff)
-	   //	 gameConfig->frameHi = spl;
+		{ //lock for frequency data
+			std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
 
-		gameConfig->frames.push_back(fabs(spl));
+			gameConfig->frames.push_back(fabs(spl));
+		}
+
 		s++;
 	}
 
-	gameConfig->FFTdata = std::vector<SAMPLE>(gameConfig->frames.begin(), gameConfig->frames.begin() + (framesPerBuffer * 2));
-
-	four1(gameConfig->FFTdata.data(), gameConfig->FFTdata.size() / 2);
-
-	float factor = 20;
-
-	{ //lock for frequency data
-		std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
-
-		gameConfig->FrequencyData.clear();
-		for (int it = 0; it < gameConfig->FFTdata.size() / 2; it++)
-		{
-
-			auto re = gameConfig->FFTdata[it * 2];
-			auto im = gameConfig->FFTdata[it * 2 + 1];
-			auto magnitude = std::sqrt(re*re + im*im);
-			//auto magnitude_dB = 20 * log10(magnitude);
-			float point = it / factor + 0.3;
-			magnitude = magnitude*atan(point);
-			gameConfig->FrequencyData.push_back(magnitude);
-
-			//store data for bass and treble
-			if (it < 15 && magnitude > gameConfig->bassHi)
-				gameConfig->bassHi = magnitude;
-
-			if (it > framesPerBuffer / 4 && it < framesPerBuffer / 2 && magnitude > gameConfig->trebleHi)
-				gameConfig->trebleHi = magnitude;
-
-			if (magnitude > gameConfig->frameHi && magnitude > gameConfig->cutoff)
-				gameConfig->frameHi = magnitude;
-		}
-	} //end lock
 	return paContinue;
 }
 
@@ -240,10 +210,9 @@ void initWindow(bool firstStart = false)
 
 	gameConfig->wasFullScreen = gameConfig->isFullScreen;
 
+	gameConfig->m_window.setVerticalSyncEnabled(gameConfig->enableVSync);
 
-	gameConfig->m_window.setVerticalSyncEnabled(true);
-
-	gameConfig->m_window.setFramerateLimit(60);
+	gameConfig->m_window.setFramerateLimit(gameConfig->enableVSync? 60 : 200);
 
 	if (gameConfig->transparent)
 	{
@@ -310,76 +279,91 @@ void menu()
 	{
 		swapFullScreen();
 	}
-	ImGui::PushStyleColor(ImGuiCol_Text, normalTextCol);
-	if (ImGui::Checkbox("Transparent", &gameConfig->transparent))
+
+	if (ImGui::Button("Toggle Advanced Settings", { -1,20 }))
 	{
-		if (gameConfig->transparent)
-		{
-			if (gameConfig->isFullScreen)
-			{
-				gameConfig->scrW = gameConfig->fullScrW + 1;
-				gameConfig->scrH = gameConfig->fullScrH + 1;
-				gameConfig->m_window.create(sf::VideoMode(gameConfig->scrW, gameConfig->scrH), "VisualiStar", 0);
-				gameConfig->m_window.setIcon((int)gameConfig->ico.getSize().x, (int)gameConfig->ico.getSize().y, gameConfig->ico.getPixelsPtr());
-				gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
-				gameConfig->m_window.setPosition({ 0,0 });
-				sf::View v = gameConfig->m_window.getView();
-				v.setSize({ gameConfig->scrW, gameConfig->scrH });
-				v.setCenter({ gameConfig->scrW / 2, gameConfig->scrH / 2 });
-				gameConfig->m_window.setView(v);
-			}
-
-			MARGINS margins;
-			margins.cxLeftWidth = -1;
-			//SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
-			//EnableWindow(gameConfig->m_window.getSystemHandle(), false);
-
-			DwmExtendFrameIntoClientArea(gameConfig->m_window.getSystemHandle(), &margins);
-
-			//gameConfig->menuShowing = false;
-		}
-		else
-		{
-			SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, 0);
-			EnableWindow(gameConfig->m_window.getSystemHandle(), true);
-		}
-		if (!gameConfig->alwaysOnTop)
+		gameConfig->advancedMenuShowing = !gameConfig->advancedMenuShowing;
+	}
+	if (gameConfig->advancedMenuShowing)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, normalTextCol);
+		if (ImGui::Checkbox("Transparent", &gameConfig->transparent))
 		{
 			if (gameConfig->transparent)
 			{
+				if (gameConfig->isFullScreen)
+				{
+					gameConfig->scrW = gameConfig->fullScrW + 1;
+					gameConfig->scrH = gameConfig->fullScrH + 1;
+					gameConfig->m_window.create(sf::VideoMode(gameConfig->scrW, gameConfig->scrH), "VisualiStar", 0);
+					gameConfig->m_window.setIcon((int)gameConfig->ico.getSize().x, (int)gameConfig->ico.getSize().y, gameConfig->ico.getPixelsPtr());
+					gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
+					gameConfig->m_window.setPosition({ 0,0 });
+					sf::View v = gameConfig->m_window.getView();
+					v.setSize({ gameConfig->scrW, gameConfig->scrH });
+					v.setCenter({ gameConfig->scrW / 2, gameConfig->scrH / 2 });
+					gameConfig->m_window.setView(v);
+				}
+
+				MARGINS margins;
+				margins.cxLeftWidth = -1;
+				//SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
+				//EnableWindow(gameConfig->m_window.getSystemHandle(), false);
+
+				DwmExtendFrameIntoClientArea(gameConfig->m_window.getSystemHandle(), &margins);
+
+				//gameConfig->menuShowing = false;
+			}
+			else
+			{
+				SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, 0);
+				EnableWindow(gameConfig->m_window.getSystemHandle(), true);
+			}
+			if (!gameConfig->alwaysOnTop)
+			{
+				if (gameConfig->transparent)
+				{
+					HWND hwnd = gameConfig->m_window.getSystemHandle();
+					SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+				}
+				else
+				{
+					HWND hwnd = gameConfig->m_window.getSystemHandle();
+					SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+				}
+			}
+		}
+		if (gameConfig->transparent)
+		{
+			ImGui::SameLine(227);
+			ImGui::PushItemWidth(60);
+			ImGui::DragFloat("Opacity", &gameConfig->minOpacity, 0.005f, 0.1f, 0.8f, "%.2f");
+			ImGui::PopItemWidth();
+		}
+
+		if (ImGui::Checkbox("Always On Top", &gameConfig->alwaysOnTop))
+		{
+			if (gameConfig->alwaysOnTop)
+			{
 				HWND hwnd = gameConfig->m_window.getSystemHandle();
-				SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+				SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 			else
 			{
 				HWND hwnd = gameConfig->m_window.getSystemHandle();
-				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 		}
-	}
-	if (gameConfig->transparent)
-	{
-		ImGui::SameLine(227);
-		ImGui::PushItemWidth(60);
-		ImGui::DragFloat("Opacity", &gameConfig->minOpacity, 0.005f, 0.1f, 0.8f, "%.2f");
-		ImGui::PopItemWidth();
-	}
 
-	if (ImGui::Checkbox("Always On Top", &gameConfig->alwaysOnTop))
-	{
-		if (gameConfig->alwaysOnTop)
-		{
-			HWND hwnd = gameConfig->m_window.getSystemHandle();
-			SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-		}
-		else
-		{
-			HWND hwnd = gameConfig->m_window.getSystemHandle();
-			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-		}
-	}
+		ImGui::Checkbox("Show FPS", &gameConfig->showFPS);
 
-	ImGui::PopStyleColor();
+		if (ImGui::Checkbox("VSync", &gameConfig->enableVSync))
+		{
+			initWindow();
+		}
+
+		ImGui::PopStyleColor();
+	}
 
 	if (ImGui::Button("Help", { -1,20 }))
 	{
@@ -541,7 +525,6 @@ void menu()
 			ImGui::EndPopup();
 		}
 
-		
 		ImGui::NewLine();
 
 	}
@@ -589,23 +572,23 @@ void menu()
 
 				gameConfig->devIdx = dev.second;
 				gameConfig->params.device = gameConfig->devIdx;
-				gameConfig->params.channelCount = info->maxInputChannels;
+				gameConfig->params.channelCount = min(2, info->maxInputChannels);
 				gameConfig->params.suggestedLatency = info->defaultLowInputLatency;
-				gameConfig->params.hostApiSpecificStreamInfo = nullptr;
+				gameConfig->params.hostApiSpecificStreamInfo = nullptr;// (PaHostApiInfo*)Pa_GetHostApiInfo(Pa_GetDefaultHostApi());
 				sRate = info->defaultSampleRate;
 
 				Pa_OpenStream(&gameConfig->AudioStr, &gameConfig->params, nullptr, sRate, FRAMES_PER_BUFFER, paClipOff, recordCallback, gameConfig->streamData);
 				Pa_StartStream(gameConfig->AudioStr);
 
-				gameConfig->frameMax = 0.05;
+				gameConfig->frameMax = gameConfig->cutoff;
 				gameConfig->frameHi = 0;
 				gameConfig->runningAverage = 0;
 
-				gameConfig->bassMax = 0.05;
+				gameConfig->bassMax = gameConfig->cutoff;
 				gameConfig->bassHi = 0;
 				gameConfig->bassAverage = 0;
 
-				gameConfig->trebleMax = 0.05;
+				gameConfig->trebleMax = gameConfig->cutoff;
 				gameConfig->trebleHi = 0;
 				gameConfig->trebleAverage = 0;
 
@@ -619,6 +602,73 @@ void menu()
 	}
 	ImGui::PopID();
 	ImGui::PopItemWidth();
+
+	if (ImGui::Button("Background Image", { -1,20 }))
+	{
+		ImGui::OpenPopup("Pick Background Image");
+	}
+
+	if (ImGui::BeginPopup("Pick Background Image"))
+	{
+		ImGui::SetWindowSize({ 400,-1 });
+
+		if (!gameConfig->backgroundImageName.empty())
+			ImGui::Text(gameConfig->backgroundImageName.c_str());
+
+		if (ImGui::Button("Browse"))
+		{
+			OPENFILENAME ofn;
+			TCHAR szFile[260] = { 0 };
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = gameConfig->m_currentWindow->getSystemHandle();
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = sizeof(szFile);
+			ofn.lpstrFilter = LPCTSTR("Image Files\0*.png;*.jpg;*.tif;*.bmp\0\0");
+			ofn.nFilterIndex = 1;
+			ofn.lpstrFileTitle = NULL;
+			ofn.nMaxFileTitle = 0;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+			if (GetOpenFileName(&ofn) == TRUE)
+			{
+				std::string imagePath(ofn.lpstrFile);
+				if (!gameConfig->backgroundImage.get())
+				{
+					gameConfig->backgroundImage = std::make_shared<sf::Image>();
+				}
+
+				if (gameConfig->backgroundImage->loadFromFile(imagePath))
+				{
+					gameConfig->backgroundImageName = imagePath;
+					gameConfig->backgroundTexture.reset();
+					gameConfig->backgroundTexture = std::make_shared<sf::Texture>();
+					gameConfig->backgroundTexture->loadFromImage(*(gameConfig->backgroundImage.get()));
+				}
+				else
+				{
+					gameConfig->backgroundImage.reset();
+				}
+				gameConfig->visTimer.restart();
+			}
+		}
+
+		if (ImGui::Button("Clear BG Image"))
+		{
+			gameConfig->backgroundImage.reset();
+			gameConfig->backgroundTexture.reset();
+			gameConfig->backgroundImageName = "";
+		}
+
+		if (ImGui::Button("Cancel"))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+
 
 	ImGui::Columns();
 
@@ -892,7 +942,7 @@ void handleEvents()
 
 void render()
 {
-	gameConfig->m_currentVis->render(gameConfig->frame, gameConfig->runningAverage, gameConfig->frameMax);
+	gameConfig->m_currentVis->render(gameConfig->frame, gameConfig->runningAverage, gameConfig->frameMax, gameConfig->backgroundTexture.get());
 
 	if (gameConfig->menuShowing)
 	{
@@ -902,6 +952,19 @@ void render()
 			gameConfig->m_window.draw(gameConfig->bottomRightBox);
 		}
 		menu();
+	}
+	else if(gameConfig->showFPS)
+	{
+		auto dt = gameConfig->m_timer.getElapsedTime();
+		ImGui::SFML::Update(gameConfig->m_window, gameConfig->m_timer.restart());
+
+		ImGui::Begin("", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
+
+		ImGui::Text("FPS: %d", (int)(1.0 / dt.asSeconds()) );
+
+		ImGui::End();
+		ImGui::EndFrame();
+		ImGui::SFML::Render(gameConfig->m_window);
 	}
 
 #ifdef _DEBUG
@@ -1012,7 +1075,7 @@ int main()
 		{
 			gameConfig->devIdx = dI;
 			gameConfig->params.device = gameConfig->devIdx;
-			gameConfig->params.channelCount = info->maxInputChannels;
+			gameConfig->params.channelCount = min(2, info->maxInputChannels);
 			gameConfig->params.suggestedLatency = info->defaultLowInputLatency;
 			gameConfig->params.hostApiSpecificStreamInfo = nullptr;
 			sRate = info->defaultSampleRate;
@@ -1029,29 +1092,86 @@ int main()
 	gameConfig->m_currentWindow->requestFocus();
 
 	gameConfig->visTimer.restart();
+	gameConfig->quietTimer.restart();
 
+
+	////////////////////////////////////// MAIN LOOP /////////////////////////////////////
 	while (gameConfig->m_currentWindow->isOpen())
 	{
-		//update audio data for this frame
-		if (gameConfig->frameHi != 0)
+
+		//Do fourier transform
+		{ //lock for frequency data
+			std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
+
+			gameConfig->FFTdata = std::vector<SAMPLE>(gameConfig->frames.begin(), gameConfig->frames.begin() + (FRAMES_PER_BUFFER * 2));
+		} //end lock
+
+		four1(gameConfig->FFTdata.data(), gameConfig->FFTdata.size() / 2);
+		float factor = 20;
+		gameConfig->FrequencyData.clear();
+
+		for (int it = 0; it < gameConfig->FFTdata.size() / 2; it++)
 		{
+			auto re = gameConfig->FFTdata[it * 2];
+			auto im = gameConfig->FFTdata[it * 2 + 1];
+			auto magnitude = std::sqrt(re*re + im*im);
+
+			float point = it / factor + 0.3;
+			magnitude = magnitude*atan(point);
+			gameConfig->FrequencyData.push_back(magnitude);
+
+			//store data for bass and treble
+			if (it < FRAMES_PER_BUFFER / 10 && magnitude > gameConfig->bassHi)
+				gameConfig->bassHi = magnitude;
+
+			if (it > FRAMES_PER_BUFFER / 4 && it < FRAMES_PER_BUFFER / 2 && magnitude > gameConfig->trebleHi)
+				gameConfig->trebleHi = magnitude;
+
+
+			if (magnitude > gameConfig->frameHi)
+				gameConfig->frameHi = magnitude;
+		}
+
+
+		if (gameConfig->frameHi != 0.0)
+		{
+			//update audio data for this frame
+			if (gameConfig->frameHi < 0) gameConfig->frameHi *= -1.0;
 			gameConfig->frame = gameConfig->frameHi;
-			if (gameConfig->frame < 0)
-				gameConfig->frame *= -1;
+
 			gameConfig->runningAverage -= gameConfig->runningAverage / 30;
 			gameConfig->runningAverage += gameConfig->frame / 30;
 			if (gameConfig->frame > gameConfig->frameMax)
 				gameConfig->frameMax = gameConfig->frame;
+
+			if (gameConfig->bassHi < 0) gameConfig->bassHi *= -1.0;
 
 			gameConfig->bassAverage -= gameConfig->bassAverage / 30;
 			gameConfig->bassAverage += gameConfig->bassHi / 30;
 			if (gameConfig->bassHi > gameConfig->bassMax)
 				gameConfig->bassMax = gameConfig->bassHi;
 
+			if (gameConfig->trebleHi < 0) gameConfig->trebleHi *= -1.0;
+
 			gameConfig->trebleAverage -= gameConfig->trebleAverage / 30;
 			gameConfig->trebleAverage += gameConfig->trebleHi / 30;
 			if (gameConfig->trebleHi > gameConfig->trebleMax)
 				gameConfig->trebleMax = gameConfig->trebleHi;
+		}
+
+		//As long as the music is loud enough the current max is good
+		if (gameConfig->frame > gameConfig->cutoff * 2)
+		{
+			gameConfig->quietTimer.restart();
+		}
+		else if (gameConfig->quietTimer.getElapsedTime().asSeconds() > 1.5)
+		{
+			//if the quietTimer reaches 1.5s, reset the max
+
+			gameConfig->frameMax = (std::max)(gameConfig->runningAverage, gameConfig->cutoff * 2);
+			gameConfig->bassMax = (std::max)(gameConfig->bassAverage, gameConfig->cutoff * 2);
+			gameConfig->trebleMax = (std::max)(gameConfig->trebleAverage, gameConfig->cutoff * 2);
+			gameConfig->quietTimer.restart();
 		}
 
 		handleEvents();
@@ -1081,7 +1201,7 @@ int main()
 		gameConfig->bassHi = 0;
 		gameConfig->trebleHi = 0;
 
-		sf::sleep(sf::milliseconds(10));
+		sf::sleep(sf::milliseconds(8));
 	}
 
 	Pa_StopStream(gameConfig->AudioStr);

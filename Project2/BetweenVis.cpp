@@ -17,30 +17,25 @@ BetweenVis::~BetweenVis()
 void BetweenVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 {
 	m_window = wind;
-	m_RT = rTex;
-
-
-	
+	m_RT = rTex;	
 
 	m_timer.restart();
 
 	if (!m_textures.count("space"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("space.jpg");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["space"] = tex2;
-		m_skyPlane.setTexture(&m_textures["space"], false);
+		m_textures["space"] = std::make_shared<sf::Texture>();
+		m_textures["space"]->loadFromFile("space.jpg");
+		m_textures["space"]->setSmooth(true);
+		m_textures["space"]->setRepeated(true);
 	}
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	if (!m_textures.count("spot"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("spot.png");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["spot"] = tex2;
+		m_textures["spot"] = std::make_shared<sf::Texture>();
+		m_textures["spot"]->loadFromFile("spot.png");
+		m_textures["spot"]->setSmooth(true);
+		m_textures["spot"]->setRepeated(true);
 	}
 
 	states.shader = &m_shader;
@@ -60,9 +55,10 @@ void BetweenVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	leftOverflow = 0;
 	m_rot = 0;
 	m_offset = 0;
+	m_betweenBeatGain = 0;
 }
 
-void BetweenVis::render(float frameHi, float frameAverage, float frameMax)
+void BetweenVis::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 	m_window->clear({0,0,0,0});
 	float scale = frameHi / frameMax;
@@ -86,6 +82,7 @@ void BetweenVis::render(float frameHi, float frameAverage, float frameMax)
 	float radius = (frameHi / frameMax)*(m_scrW / 9);
 	radius += m_scrW / 15;
 
+	m_betweenBeatGain -= 0.01;
 
 	if (frameHi > 2.f*frameAverage)
 	{
@@ -93,6 +90,13 @@ void BetweenVis::render(float frameHi, float frameAverage, float frameMax)
 
 		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[1], rgb[2], rgb[0], 1.f));
 	}
+	else if (gameConfig->bassHi > 2.f*gameConfig->bassAverage)
+	{
+		m_betweenBeatGain = 1.0;
+	}
+
+	if (m_betweenBeatGain < 0.0)
+		m_betweenBeatGain = 0.0;
 
 	m_shader.setUniform("time", -elapsed.asSeconds());
 
@@ -134,23 +138,28 @@ void BetweenVis::render(float frameHi, float frameAverage, float frameMax)
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), 4 });
 
 	sf::Color col((sf::Uint8)(rgb[0] * 255*scale), (sf::Uint8)(rgb[1] * 255*scale), (sf::Uint8)(rgb[2] * 255*scale), sf::Uint8(150 * scale));
-	auto col2 = col;
-	col2.a -= 60;
 
 	m_waveform.update();
 
+	// Coloured waveform outline
 	m_waveform.setColour(col);
-	m_waveform.scale({ 1, -1.6f });
+	m_waveform.scale({ 1, -2 });
 	m_RT->draw(m_waveform);
 
-	m_waveform.scale({ 1, 1.6f });
+	m_waveform.scale({ 1, 2 });
 	m_RT->draw(m_waveform);
 
-	m_waveform.setColour(sf::Color::Black);
-	m_waveform.scale({ 1, -1 });
+	float bassFactor = 0;
+	if(gameConfig->bassHi - gameConfig->bassAverage > 0)
+		bassFactor = gameConfig->bassAverage / gameConfig->bassMax;
+
+	// "Black" core waveform
+	sf::Color col3((sf::Uint8)(bassFactor * rgb[1]*180 + bassFactor*75), (sf::Uint8)(bassFactor * rgb[2]*180 + bassFactor * 75), (sf::Uint8)(bassFactor * rgb[0]*180 + bassFactor * 75), sf::Uint8(255));
+	m_waveform.setColour(col3);
+	m_waveform.scale({ 1, -1.4f });
 	m_RT->draw(m_waveform);
 
-	m_waveform.scale({ 1, 1 });
+	m_waveform.scale({ 1, 1.4f });
 	m_RT->draw(m_waveform);
 
 	m_RT->draw(m_skyPlane, addStates);
@@ -212,7 +221,9 @@ void BetweenVis::resetPositions(float scrW, float scrH, float ratio)
 
 	skyRect = sf::FloatRect(0, 0, scrW, scrW);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
+	m_betweenBeatGain = 0;
 	
 }
 

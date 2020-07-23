@@ -26,35 +26,32 @@ void VortexVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 
 	if (!m_textures.count("space"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("space.jpg");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["space"] = tex2;
-		m_skyPlane.setTexture(&m_textures["space"], false);
+		m_textures["space"] = std::make_shared<sf::Texture>();
+		m_textures["space"]->loadFromFile("space.jpg");
+		m_textures["space"]->setSmooth(true);
+		m_textures["space"]->setRepeated(true);
 	}
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	if (!m_textures.count("spot"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("spot.png");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["spot"] = tex2;
-		m_topBox.setTexture(&m_textures["spot"], false);
-		m_bottomBox.setTexture(&m_textures["spot"], false);
+		m_textures["spot"] = std::make_shared<sf::Texture>();
+		m_textures["spot"]->loadFromFile("spot.png");
+		m_textures["spot"]->setSmooth(true);
+		m_textures["spot"]->setRepeated(true);
+		m_topBox.setTexture(m_textures["spot"].get(), false);
+		m_bottomBox.setTexture(m_textures["spot"].get(), false);
 	}
 
 	if (!m_textures.count("ring"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("ring.png");
-		tex2.setSmooth(true);
-		tex2.setRepeated(false);
-		m_textures["ring"] = tex2;
+		m_textures["ring"] = std::make_shared<sf::Texture>();
+		m_textures["ring"]->loadFromFile("ring.png");
+		m_textures["ring"]->setSmooth(true);
+		m_textures["ring"]->setRepeated(true);
 
-		m_ringBox.setTexture(&m_textures["ring"]);
-		m_ringBox.setSize(sf::Vector2f( tex2.getSize() ));
+		m_ringBox.setTexture(m_textures["ring"].get());
+		m_ringBox.setSize(sf::Vector2f(m_textures["ring"]->getSize() ));
 		auto size = m_ringBox.getSize();
 		m_ringBox.setOrigin(size * 0.5f);
 	}
@@ -91,13 +88,13 @@ void VortexVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	m_rot = 0;
 }
 
-void VortexVis::render(float frameHi, float frameAverage, float frameMax)
+void VortexVis::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 	m_window->clear({0,0,0,0});
 	float scale = frameHi / frameMax;
 
-	m_frameAverage -= m_frameAverage / 15;
-	m_frameAverage += frameHi/15;
+	m_frameAverage -= m_frameAverage / 10;
+	m_frameAverage += frameHi/10;
 
 	auto dt = m_timer.restart();
 	elapsed += dt;
@@ -178,7 +175,7 @@ void VortexVis::render(float frameHi, float frameAverage, float frameMax)
 	}
 	
 	float baseMove = 50 * dt.asSeconds();
-	float dist = (m_scrW/2)*(m_frameAverage / frameMax) + m_scrW/2;
+	float dist = (m_scrW/2.0)*(m_frameAverage / frameMax) + m_scrW/2.0;
 	auto lastTopPos = m_topBox.getPosition();
 	float width = dist - lastTopPos.x;
 	if (width < m_boxWidth)
@@ -349,7 +346,7 @@ void VortexVis::resetPositions(float scrW, float scrH, float ratio)
 	skyRect = sf::FloatRect(0, 0, scrW, scrW);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
 
-	
+	m_frameAverage = gameConfig->frameHi;
 }
 
 void VortexVis::reloadShader()

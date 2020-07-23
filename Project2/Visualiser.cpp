@@ -17,7 +17,7 @@ void Visualiser::resetPositions(float scrW, float scrH, float ratio)
 {
 }
 
-void Visualiser::render(float frameHi, float frameAverage, float frameMax)
+void Visualiser::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 }
 

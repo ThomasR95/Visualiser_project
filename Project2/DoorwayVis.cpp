@@ -26,21 +26,19 @@ void DoorwayVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 
 	if (!m_textures.count("space"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("space.jpg");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["space"] = tex2;
-		m_skyPlane.setTexture(&m_textures["space"], false);
+		m_textures["space"] = std::make_shared<sf::Texture>();
+		m_textures["space"]->loadFromFile("space.jpg");
+		m_textures["space"]->setSmooth(true);
+		m_textures["space"]->setRepeated(true);
 	}
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	if (!m_textures.count("spot"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("spot.png");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["spot"] = tex2;
+		m_textures["spot"] = std::make_shared<sf::Texture>();
+		m_textures["spot"]->loadFromFile("spot.png");
+		m_textures["spot"]->setSmooth(true);
+		m_textures["spot"]->setRepeated(true);
 	}
 
 	states.shader = &m_shader;
@@ -67,7 +65,7 @@ void DoorwayVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	m_offset = 0;
 }
 
-void DoorwayVis::render(float frameHi, float frameAverage, float frameMax)
+void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 	m_window->clear({0,0,0,0});
 	float scale = frameHi / frameMax;
@@ -255,7 +253,7 @@ void DoorwayVis::resetPositions(float scrW, float scrH, float ratio)
 
 	skyRect = sf::FloatRect(0, 0, scrW, scrW);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
-
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 	
 }
 

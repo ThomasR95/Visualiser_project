@@ -1,6 +1,7 @@
 #pragma once
 #include "SFML/Graphics.hpp"
 #include <map>
+#include <memory>
 
 class Visualiser
 {
@@ -12,7 +13,7 @@ public:
 
 	virtual void resetPositions(float scrW, float scrH, float ratio);
 
-	virtual void render(float frameHi, float frameAverage, float frameMax);
+	virtual void render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage = nullptr);
 
 	virtual void reloadShader();
 
@@ -27,7 +28,7 @@ protected:
 	float m_scrH;
 	float m_ratio;
 
-	std::map<std::string, sf::Texture> m_textures;
+	std::map<std::string, std::shared_ptr<sf::Texture>> m_textures;
 
 	sf::Shader m_transparentShader;
 	sf::RenderStates m_transparentStates;

@@ -23,13 +23,12 @@ void TesseractVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 
 	if (!m_textures.count("space"))
 	{
-		sf::Texture tex2;
-		tex2.loadFromFile("space.jpg");
-		tex2.setSmooth(true);
-		tex2.setRepeated(true);
-		m_textures["space"] = tex2;
+		m_textures["space"] = std::make_shared<sf::Texture>();
+		m_textures["space"]->loadFromFile("space.jpg");
+		m_textures["space"]->setSmooth(true);
+		m_textures["space"]->setRepeated(true);
 	}
-	m_skyPlane.setTexture(&m_textures["space"], false);
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	states.shader = &m_shader;
 	addStates.blendMode = sf::BlendAdd;
@@ -48,7 +47,7 @@ void TesseractVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
 	m_rot = 0;
 }
 
-void TesseractVis::render(float frameHi, float frameAverage, float frameMax)
+void TesseractVis::render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage)
 {
 	m_window->clear({ 0,0,0,0 });
 
@@ -220,6 +219,7 @@ void TesseractVis::resetPositions(float scrW, float scrH, float ratio)
 
 	skyRect = sf::FloatRect(0, 0, scrW / 2, scrH / 2);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
+	m_skyPlane.setTexture(m_textures["space"].get(), false);
 
 	m_RTPlane.setTexture(&m_RT->getTexture());
 	tRect = sf::FloatRect(m_RTPlane.getTextureRect());

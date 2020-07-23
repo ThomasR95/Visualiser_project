@@ -9,7 +9,7 @@ public:
 	StarFallVis();
 	~StarFallVis();
 	void init(sf::RenderWindow * wind, sf::RenderTexture * rTex);
-	void render(float frameHi, float frameAverage, float frameMax);
+	void render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage) override;
 	void resetPositions(float scrW, float scrH, float ratio);
 	void reloadShader();
 	

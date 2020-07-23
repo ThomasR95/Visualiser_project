@@ -68,8 +68,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>VisualiStar_debug</TargetName>
+    <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetName>VisualiStar</TargetName>
+    <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>VisualiStar</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -79,6 +86,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\OneDrive\SFML-2.5.0\include;portaudio\include;portaudio\src\common;imgui;imgui-sfml;%(AdditionalIncludeDirectories);curlpp-0.8.1\include;curl-7.62.0\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -110,6 +118,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\OneDrive\SFML-2.5.0\include;portaudio\include;portaudio\src\common;imgui;imgui-sfml;;curlpp-0.8.1\include;curl-7.62.0\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -127,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\OneDrive\SFML-2.5.0\include;portaudio\include;portaudio\src\common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\OneDrive\SFML-2.5.0\include;portaudio\include;portaudio\src\common;imgui;imgui-sfml;;curlpp-0.8.1\include;curl-7.62.0\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -139,6 +148,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AngelVis.cpp" />
+    <ClCompile Include="BetweenVis.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="DoorwayVis.cpp" />
     <ClCompile Include="FrequencyWave.cpp" />
     <ClCompile Include="imgui-sfml\imgui-SFML.cpp" />
@@ -155,13 +166,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AngelVis.h" />
+    <ClInclude Include="BetweenVis.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="DoorwayVis.h" />
     <ClInclude Include="FrequencyWave.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="StarFallVis.h" />
     <ClInclude Include="Visualiser.h" />
     <ClInclude Include="TesseractVis.h" />
     <ClInclude Include="VortexVis.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VisualiStar.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -10,7 +10,7 @@ public:
 	BetweenVis();
 	~BetweenVis();
 	void init(sf::RenderWindow * wind, sf::RenderTexture * rTex);
-	void render(float frameHi, float frameAverage, float frameMax);
+	void render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage) override;
 	void resetPositions(float scrW, float scrH, float ratio);
 	void reloadShader();
 	
@@ -50,6 +50,8 @@ public:
 	float m_rot;
 	
 	FrequencyWave m_waveform;
+
+	float m_betweenBeatGain;
 	
 	
 };

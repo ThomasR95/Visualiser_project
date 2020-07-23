@@ -39,6 +39,7 @@ paTestData;
 struct Config
 {
 	//Window setup
+#pragma region Window Setup
 	bool transparent = false;
 
 	float fullScrW;
@@ -61,8 +62,10 @@ struct Config
 	bool isFullScreen = false;
 	bool wasFullScreen = false;
 	bool alwaysOnTop = false;
+#pragma endregion
 
 	//Audio variables
+#pragma region Audio Variables
 	float cutoff = 0.0006;
 
 	SAMPLE frame = 0;
@@ -91,9 +94,10 @@ struct Config
 	PaStream* AudioStr;
 	bool leftChannel = true;
 	int numChannels = 2;
-
-
+#pragma endregion
+	
 	//Visualisers
+#pragma region Visualisers
 	struct visItem
 	{
 		std::string id;
@@ -108,14 +112,26 @@ struct Config
 	int visIdx = 0;
 	sf::Clock visTimer;
 
+	sf::Clock quietTimer;
+
+
 	bool gradient = false;
 	sf::Color gradCol1 = { 255,0,0,255 };
 	sf::Color gradCol2 = { 0,0,255,255 };
 
+	std::shared_ptr<sf::Image> backgroundImage;
+	std::shared_ptr<sf::Texture> backgroundTexture;
+	std::string backgroundImageName;
+#pragma endregion
+
+#pragma region Menu settings
 	//UI stuff
 	sf::Image ico;
 
 	bool menuShowing = false;
+	bool advancedMenuShowing = false;
+	bool showFPS = false;
+	bool enableVSync = true;
 	bool firstMenu = true;
 	sf::Color* editingColour;
 
@@ -124,9 +140,6 @@ struct Config
 	sf::RectangleShape resizeBox;
 	std::pair<bool, bool> cornerGrabbed = { false, false };
 	sf::Vector2i lastMiddleClickPosition = { -1, -1 };
-
-	//debug audio bars
-	std::vector<sf::RectangleShape> bars;
 
 	sf::Clock m_timer;
 
@@ -144,6 +157,10 @@ struct Config
 	void loadFromSettingsFile(const std::string& presetName);
 
 	void loadPresetList();
+#pragma endregion
+
+	//debug audio bars
+	std::vector<sf::RectangleShape> bars;
 
 private:
 	bool gotoPresetLine(std::ifstream& file, const std::string& presetName, std::ofstream* tmp = nullptr);
