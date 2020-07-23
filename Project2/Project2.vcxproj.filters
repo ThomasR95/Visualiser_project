@@ -63,6 +63,9 @@
     <ClCompile Include="Visualiser.cpp">
       <Filter>Visualisers</Filter>
     </ClCompile>
+    <ClCompile Include="SingularityVis.cpp">
+      <Filter>Visualisers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\wave.frag">
@@ -98,6 +101,9 @@
       <Filter>Visualisers</Filter>
     </ClInclude>
     <ClInclude Include="Visualiser.h">
+      <Filter>Visualisers</Filter>
+    </ClInclude>
+    <ClInclude Include="SingularityVis.h">
       <Filter>Visualisers</Filter>
     </ClInclude>
   </ItemGroup>

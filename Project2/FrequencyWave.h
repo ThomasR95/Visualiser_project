@@ -22,7 +22,7 @@ public:
 	void update();
 
 	void init(float width, float height);
-	void init(float radius, bool symmetry = false);
+	void init(float radius, bool symmetry = false, float radius2 = 0, bool flipNormal = false);
 
 	void setColour(const sf::Color& col);
 
@@ -46,6 +46,8 @@ private:
 	float m_maxHeight;
 
 	float m_radius;
+	float m_innerRadius;
+	bool m_flipNormal;
 
 	sf::Vector2f m_position;
 	sf::Vector2f m_scale;

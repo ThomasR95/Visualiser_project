@@ -16,7 +16,7 @@
 #include "DoorwayVis.h"
 #include "AngelVis.h"
 #include "BetweenVis.h"
-
+#include "SingularityVis.h"
 
 #include <fstream>
 
@@ -1021,7 +1021,7 @@ int main()
 	ImGui::SFML::Init(gameConfig->m_window);
 
 	//setup visualisers
-	gameConfig->m_visualisers.resize(6);
+	gameConfig->m_visualisers.resize(7);
 
 	gameConfig->m_visualisers[0] = { "StarFall", true, std::make_shared<StarFallVis>() };
 	gameConfig->m_visualisers[0].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
@@ -1040,6 +1040,9 @@ int main()
 
 	gameConfig->m_visualisers[5] = { "Between", true, std::make_shared<BetweenVis>() };
 	gameConfig->m_visualisers[5].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+
+	gameConfig->m_visualisers[6] = { "Singularity", true, std::make_shared<SingularityVis>() };
+	gameConfig->m_visualisers[6].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
 
 	gameConfig->m_currentVis = gameConfig->m_visualisers[0].vis.get();
 
@@ -1106,18 +1109,21 @@ int main()
 			gameConfig->FFTdata = std::vector<SAMPLE>(gameConfig->frames.begin(), gameConfig->frames.begin() + (FRAMES_PER_BUFFER * 2));
 		} //end lock
 
-		four1(gameConfig->FFTdata.data(), gameConfig->FFTdata.size() / 2);
-		float factor = 20;
+		auto halfSize = gameConfig->FFTdata.size() / 2;
+
+		four1(gameConfig->FFTdata.data(), halfSize);
+		float factor = 50;
 		gameConfig->FrequencyData.clear();
 
-		for (int it = 0; it < gameConfig->FFTdata.size() / 2; it++)
+		for (int it = 0; it < halfSize; it++)
 		{
-			auto re = gameConfig->FFTdata[it * 2];
-			auto im = gameConfig->FFTdata[it * 2 + 1];
+			auto re = gameConfig->FFTdata[it*2];
+			auto im = gameConfig->FFTdata[it*2 + 1];
 			auto magnitude = std::sqrt(re*re + im*im);
 
 			float point = it / factor + 0.3;
 			magnitude = magnitude*atan(point);
+
 			gameConfig->FrequencyData.push_back(magnitude);
 
 			//store data for bass and treble
@@ -1126,7 +1132,6 @@ int main()
 
 			if (it > FRAMES_PER_BUFFER / 4 && it < FRAMES_PER_BUFFER / 2 && magnitude > gameConfig->trebleHi)
 				gameConfig->trebleHi = magnitude;
-
 
 			if (magnitude > gameConfig->frameHi)
 				gameConfig->frameHi = magnitude;

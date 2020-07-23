@@ -156,6 +156,7 @@
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SingularityVis.cpp" />
     <ClCompile Include="StarFallVis.cpp" />
     <ClCompile Include="Visualiser.cpp" />
     <ClCompile Include="TesseractVis.cpp" />
@@ -171,6 +172,7 @@
     <ClInclude Include="DoorwayVis.h" />
     <ClInclude Include="FrequencyWave.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SingularityVis.h" />
     <ClInclude Include="StarFallVis.h" />
     <ClInclude Include="Visualiser.h" />
     <ClInclude Include="TesseractVis.h" />

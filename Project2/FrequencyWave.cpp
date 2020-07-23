@@ -38,7 +38,7 @@ void FrequencyWave::update()
 
 	int numPoints = m_wavePoints.getVertexCount();
 
-	int pointWidth = numPoints / 2;
+	int pointWidth = numPoints / 2 - 1;
 	float segAngle = 2*PI / pointWidth;
 	int freqIdx = 0;
 
@@ -60,19 +60,28 @@ void FrequencyWave::update()
 			if (v % 2 == 0)
 			{
 				float angle = segAngle * floor(v / 2);
-				float thisRadius = m_radius * (gameConfig->FrequencyData[freqIdx] / gameConfig->frameMax);
+				float thisRadius;
+				if (m_flipNormal) {
+					thisRadius = m_innerRadius + (m_radius - m_innerRadius) * ( 1.f - (gameConfig->FrequencyData[freqIdx] / gameConfig->frameMax));
+				}
+				else {
+					thisRadius = m_innerRadius + (m_radius - m_innerRadius) * (gameConfig->FrequencyData[freqIdx] / gameConfig->frameMax);
+				}
 				vtx.position.x = sin(angle)*thisRadius;
 				vtx.position.y = cos(angle)*thisRadius;
-
-				if (m_shape == FrequencyWave::CIRCLE2)
-				{
-					sf::Vertex& vtx2 = m_wavePoints[(numPoints - 1) - v];
-					float angle2 = PI * 2 - angle;
-					vtx2.position.x = sin(angle2)*thisRadius;
-					vtx2.position.y = cos(angle2)*thisRadius;
-				}
-
-				freqIdx++;
+				
+				if (m_shape == CIRCLE2)
+					if (v < numPoints / 2)
+						freqIdx++;
+					else
+						freqIdx--;
+				else
+					freqIdx++;
+			}
+			else if (m_flipNormal) {
+				float angle = segAngle * floor(v / 2);
+				vtx.position.x = sin(angle)*m_radius;
+				vtx.position.y = cos(angle)*m_radius;
 			}
 			break;
 		}
@@ -105,40 +114,39 @@ void FrequencyWave::init(float width, float height)
 	}
 }
 
-void FrequencyWave::init(float radius, bool symmetry)
+void FrequencyWave::init(float radius, bool symmetry, float radius2, bool flipNormal)
 {
 	m_shape = CIRCLE;
 	if (symmetry) m_shape = CIRCLE2;
 	m_radius = radius;
+	m_innerRadius = radius2;
+	m_flipNormal = flipNormal;
 
 	int numPoints = FRAMES_PER_BUFFER;
-	if (symmetry) numPoints *= 2;
+	//if (symmetry) numPoints *= 2;
 
-	m_wavePoints.resize(numPoints);
+	//2 vertices per "point", one on outside and one on inside
+	auto numVertices = numPoints * 2;
+	m_wavePoints.resize(numVertices);
 	m_wavePoints.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
 
-	int pointWidth = numPoints / 2;
+	int pointWidth = numVertices / 2 - 1;
 	float segAngle = 2 * PI / pointWidth;
 
-	int forPoints = numPoints;
-	if (symmetry) forPoints /= 2;
-
-	for (int v = 0; v < forPoints; v++)
+	for (int v = 0; v < numVertices; v+=2)
 	{
 		sf::Vertex& vtx = m_wavePoints[v];
-		float angle = segAngle * floor(v / 2);
-		float thisRadius = (m_radius / 255.0) * (1 - v % 2);
+		float angle = segAngle;
+		float thisRadius = (m_radius / 255.0);
 		vtx.position.x = sin(angle)*thisRadius;
 		vtx.position.y = cos(angle)*thisRadius;
 
-		if (symmetry)
-		{
-			sf::Vertex& vtx2 = m_wavePoints[(numPoints-1)-v];
-			float angle2 = PI*2 - angle;
-			vtx2.position.x = sin(angle2)*thisRadius;
-			vtx2.position.y = cos(angle2)*thisRadius;
-		}
+		sf::Vertex& vtxInner = m_wavePoints[v+1];
+		float thisRadiusInner = (m_innerRadius / 255.0);
+		vtxInner.position.x = sin(angle)*thisRadiusInner;
+		vtxInner.position.y = cos(angle)*thisRadiusInner;
 	}
+
 }
 
 void FrequencyWave::setColour(const sf::Color & col)
