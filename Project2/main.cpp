@@ -320,11 +320,11 @@ void menu()
 		ImGui::PopStyleColor();
 		ImGui::PushStyleColor(ImGuiCol_Text, { 0.3f,0.3f,0.3f,1.f });
 		ImGui::TextWrapped("PortAudio (c) 1999-2006 Ross Bencina and Phil Burk");
-		ImGui::TextWrapped("SFML (c) 2007-2019 Laurent Gomila");
-		ImGui::TextWrapped("Dear ImGui (c) 2014-2019 Omar Cornut");
+		ImGui::TextWrapped("SFML (c) 2007-2020 Laurent Gomila");
+		ImGui::TextWrapped("Dear ImGui (c) 2014-2020 Omar Cornut");
 		ImGui::NewLine();
 
-		ImGui::TextWrapped("VisualiStar (c) 2018-2019 Thomas Rule");
+		ImGui::TextWrapped("VisualiStar (c) 2018-2020 Thomas Rule");
 		ImGui::PopStyleColor();
 		ImGui::Separator();
 		if (ImGui::Button("OK", { -1,20 }))
