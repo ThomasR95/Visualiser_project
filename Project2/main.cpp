@@ -274,19 +274,76 @@ void menu()
 
 	ImDrawList* dList = ImGui::GetWindowDrawList();
 
+	if (ImGui::Button("Close Menu (Esc)", { -1,20 }))
+	{
+		gameConfig->menuShowing = false;
+		if (gameConfig->transparent)
+			SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
+	}
+
 	//	FULLSCREEN
 	if (ImGui::Button(gameConfig->isFullScreen? "Exit Fullscreen (F11)" : "Fullscreen (F11)", { -1,20 }))
 	{
 		swapFullScreen();
 	}
 
-	if (ImGui::Button("Toggle Advanced Settings", { -1,20 }))
+		if (ImGui::Button("Help", { ImGui::GetWindowWidth()/2 - 10,20 }))
+	{
+		float h = ImGui::GetWindowHeight();
+		ImGui::SetNextWindowSize({ 400, h });
+		ImGui::OpenPopup("Help");
+	}
+
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, { 0.1f,0.1f,0.1f,1.f });
+	ImGui::SetNextWindowPosCenter();
+	ImGui::SetNextWindowSize({ 400,-1 });
+	//ImGui::SetNextWindowSizeConstraints({ 400, 400 }, { -1,-1 });
+	if (ImGui::BeginPopup("Help", ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, col_light3);
+		ImGui::TextColored(col_light2a, "Close Menu:");				ImGui::SameLine(160); ImGui::TextWrapped("Closes the main menu. ");
+		ImGui::TextColored(col_light2a, "Fullscreen:");				ImGui::SameLine(160); ImGui::TextWrapped("Toggles fullscreen.");
+		ImGui::TextColored(col_light2a, "Show Advanced...:");		ImGui::SameLine(160); ImGui::TextWrapped("Reveals some advanced options.");
+		ImGui::TextColored(col_light2a, "Choose Visualisers:");		ImGui::SameLine(160); ImGui::TextWrapped("The tickbox beside each name lets you include/exclude certain visualisers from the Cycle. \nThe play button beside each name will instantly switch to that visualiser.");
+		ImGui::TextColored(col_light2a, "Cycle:");					ImGui::SameLine(160); ImGui::TextWrapped("Changes the visualiser periodically. You can set the delay when the box is ticked.");
+		ImGui::TextColored(col_light2a, "Colours:");				ImGui::SameLine(160); ImGui::TextWrapped("Change what colours the visualisers will use.");
+		ImGui::TextColored(col_light2a, "Audio Input:");			ImGui::SameLine(160); ImGui::TextWrapped("Lets you select which audio device affects the visuals.");
+		ImGui::TextColored(col_light2a, "Presets:");				ImGui::SameLine(160); ImGui::TextWrapped("Save and load Presets for the visualiser and window settings.");
+		ImGui::TextColored(col_light2a, "Exit VisualiStar:");		ImGui::SameLine(160); ImGui::TextWrapped("Closes the program.");
+		ImGui::NewLine();
+		ImGui::TextColored(col_light2a, "Window Controls:");
+		ImGui::TextWrapped("Drag from the top-left or bottom-right corner to resize the window.\nDrag with the middle mouse button to move the whole window.");
+		ImGui::NewLine();
+		ImGui::NewLine();
+		ImGui::NewLine();
+		ImGui::NewLine();
+		ImGui::PopStyleColor();
+		ImGui::PushStyleColor(ImGuiCol_Text, { 0.3f,0.3f,0.3f,1.f });
+		ImGui::TextWrapped("PortAudio (c) 1999-2006 Ross Bencina and Phil Burk");
+		ImGui::TextWrapped("SFML (c) 2007-2019 Laurent Gomila");
+		ImGui::TextWrapped("Dear ImGui (c) 2014-2019 Omar Cornut");
+		ImGui::NewLine();
+
+		ImGui::TextWrapped("VisualiStar (c) 2018-2019 Thomas Rule");
+		ImGui::PopStyleColor();
+		ImGui::Separator();
+		if (ImGui::Button("OK", { -1,20 }))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+	ImGui::PopStyleColor();
+
+	ImGui::SameLine(); 
+	if (ImGui::Button(gameConfig->advancedMenuShowing? "Hide Advanced"  : "Show Advanced...", { -1,20 }))
 	{
 		gameConfig->advancedMenuShowing = !gameConfig->advancedMenuShowing;
 	}
 	if (gameConfig->advancedMenuShowing)
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, normalTextCol);
+		float transChkBoxPos = ImGui::GetCursorPosY();
 		if (ImGui::Checkbox("Transparent", &gameConfig->transparent))
 		{
 			if (gameConfig->transparent)
@@ -333,9 +390,14 @@ void menu()
 				}
 			}
 		}
+		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::SameLine(140); ImGui::TextWrapped("Turns VisualiStar into a transparent overlay so that you can use other programs beneath it.");
+		ImGui::PopStyleColor();
+
 		if (gameConfig->transparent)
 		{
-			ImGui::SameLine(227);
+			//ImGui::SameLine(227);
+			ImGui::SetCursorPosY(transChkBoxPos + 22);
 			ImGui::PushItemWidth(60);
 			ImGui::DragFloat("Opacity", &gameConfig->minOpacity, 0.005f, 0.1f, 0.8f, "%.2f");
 			ImGui::PopItemWidth();
@@ -354,68 +416,29 @@ void menu()
 				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 		}
+		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::SameLine(140); ImGui::TextWrapped("Keeps the visualiser above all other windows on your screen.");
+		ImGui::PopStyleColor();
 
 		ImGui::Checkbox("Show FPS", &gameConfig->showFPS);
+		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::SameLine(140); ImGui::TextWrapped("Shows an FPS counter (when menu is inactive).");
+		ImGui::PopStyleColor();
 
 		if (ImGui::Checkbox("VSync", &gameConfig->enableVSync))
 		{
 			initWindow();
 		}
+		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::SameLine(140); ImGui::TextWrapped("Enable/Disable Vertical Sync.");
+		ImGui::PopStyleColor();
 
 		ImGui::PopStyleColor();
 	}
 
-	if (ImGui::Button("Help", { -1,20 }))
-	{
-		float h = ImGui::GetWindowHeight();
-		ImGui::SetNextWindowSize({ 400, h });
-		ImGui::OpenPopup("Help");
-	}
-	ImGui::PushStyleColor(ImGuiCol_PopupBg, { 0.1f,0.1f,0.1f,1.f });
-
-	ImGui::SetNextWindowPosCenter();
-	ImGui::SetNextWindowSize({ 400,-1 });
-	//ImGui::SetNextWindowSizeConstraints({ 400, 400 }, { -1,-1 });
-	if (ImGui::BeginPopup("Help", ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
-	{
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light3);
-		ImGui::TextColored(col_light2a, "Close Menu:");				ImGui::SameLine(160); ImGui::TextWrapped("Closes the main menu. ");
-		ImGui::TextColored(col_light2a, "Fullscreen:");				ImGui::SameLine(160); ImGui::TextWrapped("Toggles fullscreen.");
-		ImGui::TextColored(col_light2a, "Transparent:");			ImGui::SameLine(160); ImGui::TextWrapped("Turns VisualiStar into a transparent overlay so that you can use other programs beneath it.");
-		ImGui::TextColored(col_light2a, "Opacity:");				ImGui::SameLine(160); ImGui::TextWrapped("Choose the opacity level for the transparent window.");
-		ImGui::TextColored(col_light2a, "Always On Top:");			ImGui::SameLine(160); ImGui::TextWrapped("Keeps the visualiser above all other windows on your screen.");
-		ImGui::TextColored(col_light2a, "Choose Visualisers:");		ImGui::SameLine(160); ImGui::TextWrapped("The tickbox beside each name lets you include/exclude certain visualisers from the Cycle. \nThe play button beside each name will instantly switch to that visualiser.");
-		ImGui::TextColored(col_light2a, "Cycle:");					ImGui::SameLine(160); ImGui::TextWrapped("Changes the visualiser periodically. You can set the delay when the box is ticked.");
-		ImGui::TextColored(col_light2a, "Colours:");				ImGui::SameLine(160); ImGui::TextWrapped("Change what colours the visualisers will use.");
-		ImGui::TextColored(col_light2a, "Audio Input:");			ImGui::SameLine(160); ImGui::TextWrapped("Lets you select which audio device affects the visuals.");
-		ImGui::TextColored(col_light2a, "Exit VisualiStar:");		ImGui::SameLine(160); ImGui::TextWrapped("Closes the program.");
-		ImGui::NewLine();
-		ImGui::TextColored(col_light2a, "Window Controls:");
-		ImGui::TextWrapped("Drag from the top-left or bottom-right corner to resize the window.\nDrag with the middle mouse button to move the whole window.");
-		ImGui::NewLine();
-		ImGui::NewLine();
-		ImGui::NewLine();
-		ImGui::NewLine();
-		ImGui::PopStyleColor();
-		ImGui::PushStyleColor(ImGuiCol_Text, { 0.3f,0.3f,0.3f,1.f });
-		ImGui::TextWrapped("PortAudio (c) 1999-2006 Ross Bencina and Phil Burk");
-		ImGui::TextWrapped("SFML (c) 2007-2019 Laurent Gomila");
-		ImGui::TextWrapped("Dear ImGui (c) 2014-2019 Omar Cornut");
-		ImGui::NewLine();
-
-		ImGui::TextWrapped("VisualiStar (c) 2018-2019 Thomas Rule");
-		ImGui::PopStyleColor();
-		ImGui::Separator();
-		if (ImGui::Button("OK", { -1,20 }))
-		{
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
-	}
-	ImGui::PopStyleColor();
+	ImGui::Separator();
 
 	//	VISUALISER LIST
-	ImGui::NewLine();
 
 	ImGui::Columns(2, "visualisers/options", false);
 	ImGui::SetColumnWidth(0, 260);
@@ -474,6 +497,8 @@ void menu()
 	if (countdown < 0) countdown = 0;
 
 	ImGui::TextColored(col_light, gameConfig->cycleVis ? "Next change - %ds" : "", countdown);
+
+	auto colPos = ImGui::GetCursorPosY();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
 	ImGui::TextColored(normalTextCol, "Colours:"); ImGui::SameLine();
@@ -541,7 +566,7 @@ void menu()
 
 
 	//	INPUT LIST
-	ImGui::SetCursorPosY(240);
+	ImGui::SetCursorPosY(colPos+72);
 	ImGui::TextColored(normalTextCol, "Audio Input");
 
 	if (gameConfig->firstMenu)
@@ -607,6 +632,8 @@ void menu()
 
 	ImGui::NewLine();
 
+	//WIP Background image stuff here
+/*
 	if (ImGui::Button("Background Image", { -1,20 }))
 	{
 		ImGui::OpenPopup("Pick Background Image");
@@ -673,6 +700,7 @@ void menu()
 		ImGui::EndPopup();
 	}
 
+	*/
 
 	ImGui::Columns();
 
@@ -745,6 +773,8 @@ void menu()
 
 		ImGui::PushID("VisSave");
 		ImGui::TextColored(normalTextCol, "Visualiser Settings");
+		ImGui::SameLine(); ImGui::TextColored(col_light2a, "(Visualisers in cycle, colours)");
+
 		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveVisInfo))
 		{
 			if (gameConfig->saveVisInfo)
@@ -762,6 +792,8 @@ void menu()
 		ImGui::PopID();
 		ImGui::PushID("WndSave");
 		ImGui::TextColored(normalTextCol, "Window Settings");
+		ImGui::SameLine(); ImGui::TextColored(col_light2a, "(Size, position)");
+
 		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveWindowInfo))
 		{
 			if (gameConfig->saveWindowInfo)
@@ -781,9 +813,10 @@ void menu()
 		std::string saveName = "Save";
 		if (overwriting) saveName = "Overwrite";
 
-		if (ImGui::Button(saveName.c_str(), { -1,20 }))
+		std::string name(gameConfig->m_settingsFileBoxName.data());
+
+		if ( (name != "") && ImGui::Button(saveName.c_str(), { -1,20 }))
 		{
-			std::string name(gameConfig->m_settingsFileBoxName.data());
 			if (std::find(gameConfig->m_presetNames.begin(), gameConfig->m_presetNames.end(), name) == gameConfig->m_presetNames.end())
 			{
 				gameConfig->m_presetNames.push_back(name);
@@ -797,13 +830,6 @@ void menu()
 	}
 
 	ImGui::Separator();
-
-	if (ImGui::Button("Close Menu (Esc)", { -1,20 }))
-	{
-		gameConfig->menuShowing = false;
-		if (gameConfig->transparent)
-			SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
-	}
 
 	//	EXIT
 	ImGui::PushStyleColor(ImGuiCol_Button, col_dark);
