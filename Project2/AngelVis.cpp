@@ -243,7 +243,7 @@ void AngelVis::resetPositions(float scrW, float scrH, float ratio)
 	leftOverflow = 0;
 	topOverflow = 0;
 
-	m_waveform.init(scrW / 2, true);
+	m_waveform.init(scrW / 4, true);
 	m_waveform.setColour(sf::Color(255, 100, 255, 200));
 	m_waveform.position({ scrW / 2, scrH / 2.2f });
 	m_waveform.scale({ 2.f,1.f });

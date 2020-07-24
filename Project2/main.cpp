@@ -265,7 +265,7 @@ void menu()
 	style.AntiAliasedLines = true;
 
 	ImGui::SetNextWindowPosCenter();
-	ImGui::SetNextWindowSize({ 400, -1 });
+	ImGui::SetNextWindowSize({ 480, -1 });
 
 	ImVec4 greyoutCol(0.3, 0.3, 0.3, 1.0);
 	ImVec4 normalTextCol(col_light3);
@@ -418,11 +418,11 @@ void menu()
 	ImGui::NewLine();
 
 	ImGui::Columns(2, "visualisers/options", false);
-	ImGui::SetColumnWidth(0, 220);
+	ImGui::SetColumnWidth(0, 260);
 
 	ImGui::TextColored(normalTextCol, "Choose Visualisers");
 	ImGui::TextColored({ 0.5, 0.5, 0.5, 1.0 }, "In Cycle  Play   Name");
-	ImGui::BeginChild("Choose Visualiser", { -1, 150 });
+	ImGui::BeginChild("Choose Visualiser", { -1, 180 });
 	for (int v = 0; v < gameConfig->m_visualisers.size(); v++)
 	{
 		auto& vis = gameConfig->m_visualisers[v];
@@ -537,9 +537,11 @@ void menu()
 		}
 	}
 
+	ImGui::NewLine();
+
 
 	//	INPUT LIST
-	ImGui::SetCursorPosY(280);
+	ImGui::SetCursorPosY(240);
 	ImGui::TextColored(normalTextCol, "Audio Input");
 
 	if (gameConfig->firstMenu)
@@ -602,6 +604,8 @@ void menu()
 	}
 	ImGui::PopID();
 	ImGui::PopItemWidth();
+
+	ImGui::NewLine();
 
 	if (ImGui::Button("Background Image", { -1,20 }))
 	{
@@ -1117,13 +1121,16 @@ int main()
 
 		for (int it = 0; it < halfSize; it++)
 		{
-			auto re = gameConfig->FFTdata[it*2];
-			auto im = gameConfig->FFTdata[it*2 + 1];
+			auto re = gameConfig->FFTdata[it];
+			auto im = gameConfig->FFTdata[it + 1];
 			auto magnitude = std::sqrt(re*re + im*im);
 
+			//Compensations for the fact my FFT implementation is probably wrong
 			float point = it / factor + 0.3;
 			magnitude = magnitude*atan(point);
+			if (it == 0) magnitude *= 0.7;
 
+			//Store the magnitude
 			gameConfig->FrequencyData.push_back(magnitude);
 
 			//store data for bass and treble
@@ -1133,7 +1140,7 @@ int main()
 			if (it > FRAMES_PER_BUFFER / 4 && it < FRAMES_PER_BUFFER / 2 && magnitude > gameConfig->trebleHi)
 				gameConfig->trebleHi = magnitude;
 
-			if (magnitude > gameConfig->frameHi)
+			if (magnitude > gameConfig->frameHi && it < FRAMES_PER_BUFFER / 2)
 				gameConfig->frameHi = magnitude;
 		}
 

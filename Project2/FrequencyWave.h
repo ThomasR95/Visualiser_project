@@ -38,6 +38,12 @@ public:
 	void blendMode(const sf::BlendMode& bm) { m_blendMode = bm; }
 	sf::BlendMode blendMode() { return m_blendMode; }
 
+	float radius() { return m_radius; }
+	void radius(float radius) { m_radius = radius; }
+
+	float innerRadius() { return m_innerRadius; }
+	void innerRadius(float radius) { m_innerRadius = radius; }
+
 private:
 
 	sf::VertexArray m_wavePoints;

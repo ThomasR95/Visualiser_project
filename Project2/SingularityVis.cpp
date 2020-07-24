@@ -127,16 +127,15 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 200), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), 4 });
 
-
-	sf::Color col((sf::Uint8)(rgb[0] * 255*scale), (sf::Uint8)(rgb[1] * 255*scale), (sf::Uint8)(rgb[2] * 255*scale), sf::Uint8(150 * scale));
+	// Coloured waveform outline
+	auto oldInnerRadius = m_waveform.innerRadius();
+	m_waveform.innerRadius(oldInnerRadius*0.5);
+	sf::Color col((sf::Uint8)(rgb[0] * 155*scale + 100), (sf::Uint8)(rgb[1] * 155*scale + 100), (sf::Uint8)(rgb[2] * 155*scale + 100), sf::Uint8(150 * scale + 50));
+	m_waveform.setColour(col);
+	m_waveform.rotation(m_waveform.rotation() + (dt.asSeconds()*m_degreesPerSec));
 	m_waveform.update();
 
-	// Coloured waveform outline
-	m_waveform.setColour(col);
-	m_waveform.scale({ 0.98f, 0.98f });
 	m_RT->draw(m_waveform);
-
-	m_waveform.rotation(m_waveform.rotation() + (dt.asSeconds()*m_degreesPerSec));
 
 	float bassFactor = 0;
 	if(gameConfig->bassHi - gameConfig->bassAverage > 0)
@@ -145,7 +144,9 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 	// "Black" core waveform
 	sf::Color col3((sf::Uint8)(bassFactor * rgb[1]*180 + bassFactor*75), (sf::Uint8)(bassFactor * rgb[2]*180 + bassFactor * 75), (sf::Uint8)(bassFactor * rgb[0]*180 + bassFactor * 75), sf::Uint8(255));
 	m_waveform.setColour(col3);
-	m_waveform.scale({ 1.f, 1.f });
+	m_waveform.innerRadius(oldInnerRadius);
+	m_waveform.update();
+
 	m_RT->draw(m_waveform);
 
 	m_RT->draw(m_skyPlane, addStates);
@@ -178,7 +179,7 @@ void SingularityVis::resetPositions(float scrW, float scrH, float ratio)
 	m_RT2.clear({ 0,0,0,255 });
 	m_RT2.setSmooth(true);
 
-	m_waveform.init(m_scrH / 2, true, m_scrH/4, true);
+	m_waveform.init(m_scrH / 2.2, true, m_scrH/3.5, true);
 	m_waveform.position({ m_scrW / 2, m_scrH / 2 });
 	m_waveform.rotation(0);
 	m_waveform.setColour(sf::Color::Black);

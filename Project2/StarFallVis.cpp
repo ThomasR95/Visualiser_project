@@ -216,7 +216,7 @@ void StarFallVis::resetPositions(float scrW, float scrH, float ratio)
 	m_spot.setTexture(m_textures["spot"].get());
 
 	//m_waveform.init(m_scrW, -m_scrH / 6);
-	m_waveform.init(m_scrH, true);
+	m_waveform.init(m_scrH/3, true);
 	m_waveform.position( spotPos );
 	m_waveform.setColour(sf::Color(255,255,50,40));
 	m_waveform.blendMode(sf::BlendAdd);
