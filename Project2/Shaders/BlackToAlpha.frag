@@ -1,3 +1,4 @@
+#version 130
 
 uniform sampler2D texture;
 uniform float minOpacity = 0.1;

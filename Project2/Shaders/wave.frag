@@ -1,4 +1,4 @@
-#version 140
+#version 130
 
 uniform vec2 point;
 uniform float time;

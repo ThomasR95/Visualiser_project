@@ -1,4 +1,5 @@
-#version 440
+#version 130
+
 uniform vec2 point;
 uniform float time;
 uniform float amplitude;
