@@ -1,7 +1,5 @@
-#include "FrequencyWave.h"
-
 #include "Config.h"
-extern Config* gameConfig;
+#include "FrequencyWave.h"
 
 FrequencyWave::FrequencyWave()
 {
@@ -29,7 +27,7 @@ void FrequencyWave::draw(sf::RenderTarget& target, sf::RenderStates states) cons
 	target.draw(m_wavePoints, myStates);
 }
 
-void FrequencyWave::update()
+void FrequencyWave::update(Config* gameConfig)
 {
 	std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
 

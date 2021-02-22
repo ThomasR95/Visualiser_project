@@ -1,8 +1,6 @@
 #include "DoorwayVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
 
 DoorwayVis::DoorwayVis() : Visualiser()
 {
@@ -14,13 +12,11 @@ DoorwayVis::~DoorwayVis()
 }
 
 
-void DoorwayVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void DoorwayVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;
-
-
-	
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -89,28 +85,16 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	float radius = (frameHi / frameMax)*(m_scrW / 9);
 	radius += m_scrW / 15;
 
-
-	if (frameHi > 2.f*frameAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(1-rgb[0], 1-rgb[1], 1-rgb[2], 1.f));
-	}
+	mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", -elapsed.asSeconds());
-
 
 	float baseColour = 500.f - (500.f * (mult / (m_scrW / 20)));
 	if (baseColour > 250)
 		baseColour = 250;
-
 	
-	//m_RT->draw(m_RTPlane);
-
 	m_RTPlane.setFillColor({ (sf::Uint8)(baseColour + rgb[0] * 5), (sf::Uint8)(baseColour + rgb[1] * 5), (sf::Uint8)(baseColour + rgb[2] * 5), 200 });
 
-	//m_rot = m_degreesPerFrame/2 +  ((m_degreesPerFrame/2) * (frameAverage / frameMax));
-	//m_RTPlane.setRotation(m_rot);
 	auto view = m_RT->getView();
 	auto viewCpy = view;
 	viewCpy.zoom(1.0 + (1.f-scale)*0.01f);
@@ -129,8 +113,6 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 
 	m_RTPlane.setFillColor({ 255, 255, 255, 255 });
 	m_RT->setView(view);
-	//m_RTPlane.setRotation(0);
-
 	
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), 4 });
 
@@ -149,7 +131,7 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	m_RT->draw(m_skyPlane);
 	m_RT->draw(m_shaderPlane, states);
 
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 
 	m_waveform.rotation(0);
 	m_waveform.position({ 0.f, m_scrH });
@@ -158,10 +140,6 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	m_waveform.rotation(180);
 	m_waveform.position({ m_scrW, 0.f });
 	m_RT->draw(m_waveform);
-	
-
-	//m_RT->draw(m_Rim);
-	//m_RT->draw(m_Hole);
 
 	m_RT->display();
 
@@ -171,33 +149,12 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	else
 		m_window->draw(m_RTPlane);
 
-	
-	
-	/*
-	float high = (frameHi / frameMax) - 0.5f;
-	if (high < 0)
-		high = 0;
-	m_skyPlane.setFillColor({ sf::Uint8(255u * high), sf::Uint8(255u * high), sf::Uint8(255u * high), 4 });
-	m_RTPlane2.setScale({ 0.995f,0.995f });
-	m_RTPlane2.setFillColor({ 250,250,250,255 });
-	m_RT2.draw(m_RTPlane2);
-	m_RT2.draw(m_skyPlane, contrastStates);
-	m_RT2.display();
-	m_RTPlane2.setScale({ 1,1 });
-	m_RTPlane2.setFillColor({ 255,255,255,255 });
-	m_window->draw(m_RTPlane2, addStates);
-	*/
-
 	m_transparentShader.setUniform("minOpacity", 0.0f);
 
 	m_skyPlane.setRotation(m_degrees);
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), sf::Uint8(150 * scale) });
-	/*if (ringFadeUp || ringFadeDown)
-	{
-		m_window->draw(m_ringBox, addStates);
-	}*/
-	m_window->draw(m_skyPlane, addStates);
 
+	m_window->draw(m_skyPlane, addStates);
 }
 
 void DoorwayVis::resetPositions(float scrW, float scrH, float ratio)
@@ -271,7 +228,7 @@ void DoorwayVis::reloadShader()
 	m_shader.setUniform("scrw", m_scrW);
 	m_shader.setUniform("scrh", m_scrH);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(1-rgb[0], 1-rgb[1], 1-rgb[2], 1.f));
 

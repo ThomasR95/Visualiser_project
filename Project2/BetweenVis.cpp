@@ -1,9 +1,6 @@
 #include "BetweenVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 BetweenVis::BetweenVis() : Visualiser()
 {
 }
@@ -14,10 +11,11 @@ BetweenVis::~BetweenVis()
 }
 
 
-void BetweenVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void BetweenVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;	
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -82,24 +80,9 @@ void BetweenVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	float radius = (frameHi / frameMax)*(m_scrW / 9);
 	radius += m_scrW / 15;
 
-	m_betweenBeatGain -= 0.01;
-
-	if (frameHi > 2.f*frameAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[1], rgb[2], rgb[0], 1.f));
-	}
-	else if (gameConfig->bassHi > 2.f*gameConfig->bassAverage)
-	{
-		m_betweenBeatGain = 1.0;
-	}
-
-	if (m_betweenBeatGain < 0.0)
-		m_betweenBeatGain = 0.0;
+	bool colChange = mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", -elapsed.asSeconds());
-
 
 	float baseColour = 500.f - (500.f * (mult / (m_scrW / 20)));
 	if (baseColour > 250)
@@ -139,7 +122,7 @@ void BetweenVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 
 	sf::Color col((sf::Uint8)(rgb[0] * 255*scale), (sf::Uint8)(rgb[1] * 255*scale), (sf::Uint8)(rgb[2] * 255*scale), sf::Uint8(150 * scale));
 
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 
 	// Coloured waveform outline
 	m_waveform.setColour(col);
@@ -221,10 +204,7 @@ void BetweenVis::resetPositions(float scrW, float scrH, float ratio)
 
 	skyRect = sf::FloatRect(0, 0, scrW, scrW);
 	m_skyPlane.setTextureRect(sf::IntRect(skyRect));
-	m_skyPlane.setTexture(m_textures["space"].get(), false);
-
-	m_betweenBeatGain = 0;
-	
+	m_skyPlane.setTexture(m_textures["space"].get(), false);	
 }
 
 void BetweenVis::reloadShader()
@@ -241,7 +221,7 @@ void BetweenVis::reloadShader()
 	m_shader.setUniform("scrw", m_scrW);
 	m_shader.setUniform("scrh", m_scrH);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(1-rgb[0], 1-rgb[1], 1-rgb[2], 1.f));
 

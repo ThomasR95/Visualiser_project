@@ -1,9 +1,6 @@
 #include "TesseractVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 TesseractVis::TesseractVis() : Visualiser()
 {
 }
@@ -14,10 +11,11 @@ TesseractVis::~TesseractVis()
 }
 
 
-void TesseractVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void TesseractVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -117,12 +115,7 @@ void TesseractVis::render(float frameHi, float frameAverage, float frameMax, sf:
 			m_rot = 0;
 	}
 
-	if (gameConfig->bassHi > 1.5f*gameConfig->bassAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
-	}
+	mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", elapsed.asSeconds());
 
@@ -259,7 +252,7 @@ void TesseractVis::reloadShader()
 
 	m_shader.setUniform("blackBetweenWaves", true);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
 

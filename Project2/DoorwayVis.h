@@ -1,4 +1,5 @@
 #pragma once
+#include "Config.h"
 #include "Visualiser.h"
 #include <deque>
 #include "FrequencyWave.h"
@@ -9,7 +10,7 @@ class DoorwayVis :
 public:
 	DoorwayVis();
 	~DoorwayVis();
-	void init(sf::RenderWindow * wind, sf::RenderTexture * rTex);
+	void init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config);
 	void render(float frameHi, float frameAverage, float frameMax, sf::Texture* bgImage) override;
 	void resetPositions(float scrW, float scrH, float ratio);
 	void reloadShader();

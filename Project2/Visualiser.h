@@ -3,13 +3,15 @@
 #include <map>
 #include <memory>
 
+class Config;
+
 class Visualiser
 {
 public:
 	Visualiser();
 	~Visualiser();
 
-	virtual void init(sf::RenderWindow* wind, sf::RenderTexture* rTex);
+	virtual void init(sf::RenderWindow* wind, sf::RenderTexture* rTex, Config* config);
 
 	virtual void resetPositions(float scrW, float scrH, float ratio);
 
@@ -19,7 +21,13 @@ public:
 
 protected:
 
-	void getRandomColour(std::vector<float>& rgb, bool useGradient = false, sf::Color* col1 = nullptr, sf::Color* col2 = nullptr);
+	void getRandomColour(std::vector<float>& rgb);
+
+	void getLoudnessColour(std::vector<float>& rgb, float soundLevel, float minLevel, float maxLevel);
+
+	// pass 0 to frameAverage to force a colour change
+	// return true if colour changed
+	bool mainColourChange(std::vector<float>& rgb, float frameHi, float frameAverage, float frameMax);
 
 	sf::RenderWindow * m_window;
 	sf::RenderTexture* m_RT;
@@ -27,6 +35,8 @@ protected:
 	float m_scrW;
 	float m_scrH;
 	float m_ratio;
+
+	Config* gameConfig = nullptr;
 
 	std::map<std::string, std::shared_ptr<sf::Texture>> m_textures;
 

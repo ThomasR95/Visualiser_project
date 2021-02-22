@@ -1,9 +1,6 @@
 #include "SingularityVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 SingularityVis::SingularityVis() : Visualiser()
 {
 }
@@ -14,10 +11,11 @@ SingularityVis::~SingularityVis()
 }
 
 
-void SingularityVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void SingularityVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
-	m_RT = rTex;	
+	m_RT = rTex;
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -80,13 +78,8 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 
 	m_betweenBeatGain -= 0.01;
 
-	if (frameHi > 2.f*frameAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[1], rgb[2], rgb[0], 1.f));
-	}
-	else if (gameConfig->bassHi > 2.f*gameConfig->bassAverage)
+	bool colChange = mainColourChange(rgb, frameHi, frameAverage, frameMax);
+	if (!colChange && (gameConfig->bassHi > 2.f*gameConfig->bassAverage))
 	{
 		m_betweenBeatGain = 1.0;
 	}
@@ -96,7 +89,6 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 
 	m_shader.setUniform("time", -elapsed.asSeconds());
 
-
 	float baseColour = 200.f * (mult);
 
 	m_RT->draw(m_RTPlane);
@@ -104,7 +96,6 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 	// Draw previous frame here, slightly darker, so that it fades out over time
 	m_RTPlane.setFillColor({ 200, 200, 200, 255 });
 
-	//m_RTPlane.setRotation(dt.asSeconds()*m_degreesPerSec*2);
 	auto view = m_RT->getView();
 	auto viewCpy = view;
 
@@ -133,7 +124,7 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 	sf::Color col((sf::Uint8)(rgb[0] * 155*scale + 100), (sf::Uint8)(rgb[1] * 155*scale + 100), (sf::Uint8)(rgb[2] * 155*scale + 100), sf::Uint8(150 * scale + 50));
 	m_waveform.setColour(col);
 	m_waveform.rotation(m_waveform.rotation() + (dt.asSeconds()*m_degreesPerSec));
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 
 	m_RT->draw(m_waveform);
 
@@ -145,7 +136,7 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 	sf::Color col3((sf::Uint8)(bassFactor * rgb[1]*180 + bassFactor*75), (sf::Uint8)(bassFactor * rgb[2]*180 + bassFactor * 75), (sf::Uint8)(bassFactor * rgb[0]*180 + bassFactor * 75), sf::Uint8(255));
 	m_waveform.setColour(col3);
 	m_waveform.innerRadius(oldInnerRadius);
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 
 	m_RT->draw(m_waveform);
 
@@ -228,7 +219,7 @@ void SingularityVis::reloadShader()
 	m_shader.setUniform("scrw", m_scrW);
 	m_shader.setUniform("scrh", m_scrH);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(1-rgb[0], 1-rgb[1], 1-rgb[2], 1.f));
 

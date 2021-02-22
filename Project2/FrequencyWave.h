@@ -2,6 +2,7 @@
 
 #include <SFML\Graphics.hpp>
 
+class Config;
 
 class FrequencyWave : public sf::Drawable
 {
@@ -19,7 +20,7 @@ public:
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
-	void update();
+	void update(Config* gameConfig);
 
 	void init(float width, float height);
 	void init(float radius, bool symmetry = false, float radius2 = 0, bool flipNormal = false);

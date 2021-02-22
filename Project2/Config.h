@@ -116,6 +116,7 @@ struct Config
 
 
 	bool gradient = false;
+	bool gradientLoudness = false;
 	sf::Color gradCol1 = { 255,0,0,255 };
 	sf::Color gradCol2 = { 0,0,255,255 };
 

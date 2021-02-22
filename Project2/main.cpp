@@ -459,7 +459,7 @@ void menu()
 		ImGui::PushID((vis.id + "playbtn").c_str());
 		if (ImGui::Button(">", { 20, 20 }))
 		{
-			vis.vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+			vis.vis->init(&gameConfig->m_window, &gameConfig->m_RT, gameConfig);
 			vis.vis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
 			vis.vis->reloadShader();
 			gameConfig->m_currentVis = vis.vis.get();
@@ -509,6 +509,7 @@ void menu()
 			gameConfig->gradient = false;
 			gameConfig->m_currentVis->reloadShader();
 		}
+		ImGui::Checkbox("Loudness Gradient", &gameConfig->gradientLoudness);
 
 		//ImGui::SameLine();
 		if (ImGui::ColorButton("Colour 1", gameConfig->gradCol1, 0, {10,20}))
@@ -583,7 +584,7 @@ void menu()
 
 	//ImGui::TextColored({ 0.5, 0.5, 0.5, 1.0 }, "Current:\n  %s", gameConfig->deviceList[gameConfig->devIdx].first.c_str());
 	ImGui::PushID("AudImpCombo");
-	ImGui::PushItemWidth(150);
+	ImGui::PushItemWidth(200);
 	if (ImGui::BeginCombo("", gameConfig->deviceList[gameConfig->devIdx].first.c_str()))
 	{
 		for (auto& dev : gameConfig->deviceList)
@@ -620,9 +621,11 @@ void menu()
 				gameConfig->trebleAverage = 0;
 
 
-				gameConfig->m_currentVis->init(&gameConfig->m_window, &gameConfig->m_RT);
+				gameConfig->m_currentVis->init(&gameConfig->m_window, &gameConfig->m_RT, gameConfig);
 				gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
 				gameConfig->m_currentVis->reloadShader();
+
+				
 			}
 		}
 		ImGui::EndCombo();
@@ -1054,25 +1057,17 @@ int main()
 	gameConfig->m_visualisers.resize(7);
 
 	gameConfig->m_visualisers[0] = { "StarFall", true, std::make_shared<StarFallVis>() };
-	gameConfig->m_visualisers[0].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[1] = { "Tesseract", true, std::make_shared<TesseractVis>() };
-	gameConfig->m_visualisers[1].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[2] = { "Vortex", true, std::make_shared<VortexVis>() };
-	gameConfig->m_visualisers[2].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[3] = { "Doorway", true, std::make_shared<DoorwayVis>() };
-	gameConfig->m_visualisers[3].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[4] = { "Archangel", true, std::make_shared<AngelVis>() };
-	gameConfig->m_visualisers[4].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[5] = { "Between", true, std::make_shared<BetweenVis>() };
-	gameConfig->m_visualisers[5].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
-
 	gameConfig->m_visualisers[6] = { "Singularity", true, std::make_shared<SingularityVis>() };
-	gameConfig->m_visualisers[6].vis->init(&gameConfig->m_window, &gameConfig->m_RT);
+
+	for (auto& v : gameConfig->m_visualisers)
+	{
+		v.vis->init(&gameConfig->m_window, &gameConfig->m_RT, gameConfig);
+	}
 
 	gameConfig->m_currentVis = gameConfig->m_visualisers[0].vis.get();
 
@@ -1230,7 +1225,7 @@ int main()
 			} while (!gameConfig->m_visualisers[gameConfig->visIdx].inCycle);
 
 			gameConfig->m_currentVis = gameConfig->m_visualisers[gameConfig->visIdx].vis.get();
-			gameConfig->m_currentVis->init(&gameConfig->m_window, &gameConfig->m_RT);
+			gameConfig->m_currentVis->init(&gameConfig->m_window, &gameConfig->m_RT, gameConfig);
 			gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
 			gameConfig->m_currentVis->reloadShader();
 		}

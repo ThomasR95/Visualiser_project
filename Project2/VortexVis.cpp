@@ -1,9 +1,6 @@
 #include "VortexVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 VortexVis::VortexVis() : Visualiser()
 {
 }
@@ -14,13 +11,11 @@ VortexVis::~VortexVis()
 }
 
 
-void VortexVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void VortexVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;
-
-
-	
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -123,12 +118,7 @@ void VortexVis::render(float frameHi, float frameAverage, float frameMax, sf::Te
 		m_ringBox.setRotation(ringRot);
 	}
 
-	if (frameHi > 2.f*frameAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
-	}
+	mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", elapsed.asSeconds());
 
@@ -363,7 +353,7 @@ void VortexVis::reloadShader()
 	m_shader.setUniform("scrw", m_scrW);
 	m_shader.setUniform("scrh", m_scrH);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
 

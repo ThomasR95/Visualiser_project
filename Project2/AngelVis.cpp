@@ -1,9 +1,6 @@
 #include "AngelVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 AngelVis::AngelVis() : Visualiser()
 {
 }
@@ -14,10 +11,11 @@ AngelVis::~AngelVis()
 }
 
 
-void AngelVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void AngelVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;
+	gameConfig = config;
 
 	m_timer.restart();
 
@@ -52,7 +50,7 @@ void AngelVis::render(float frameHi, float frameAverage, float frameMax, sf::Tex
 {
 	m_window->clear({ 0,0,0,0 });
 
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 
 	float scale = frameHi / frameMax;
 
@@ -121,12 +119,7 @@ void AngelVis::render(float frameHi, float frameAverage, float frameMax, sf::Tex
 		}
 	}
 
-	if (gameConfig->bassHi > 1.5f*gameConfig->bassAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
-	}
+	mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", elapsed.asSeconds());
 
@@ -266,7 +259,7 @@ void AngelVis::reloadShader()
 
 	m_shader.setUniform("blackBetweenWaves", true);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
 

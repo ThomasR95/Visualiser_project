@@ -1,9 +1,6 @@
 #include "StarFallVis.h"
 #include <iostream>
 
-#include "Config.h"
-extern Config* gameConfig;
-
 StarFallVis::StarFallVis() : Visualiser()
 {
 }
@@ -14,10 +11,11 @@ StarFallVis::~StarFallVis()
 }
 
 
-void StarFallVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex)
+void StarFallVis::init(sf::RenderWindow * wind, sf::RenderTexture * rTex, Config* config)
 {
 	m_window = wind;
 	m_RT = rTex;
+	gameConfig = config;
 
 	m_timer.restart();
 	m_spot = sf::CircleShape(m_spotRadius);
@@ -86,12 +84,7 @@ void StarFallVis::render(float frameHi, float frameAverage, float frameMax, sf::
 		}
 	}
 
-	if (frameHi > 1.8f*frameAverage)
-	{
-		getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
-
-		m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
-	}
+	mainColourChange(rgb, frameHi, frameAverage, frameMax);
 
 	m_shader.setUniform("time", elapsed.asSeconds());
 
@@ -198,7 +191,7 @@ void StarFallVis::render(float frameHi, float frameAverage, float frameMax, sf::
 	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 200), (sf::Uint8)(rgb[2] * 200), sf::Uint8(100 * scale) });
 	m_window->draw(m_skyPlane, addStates);
 
-	m_waveform.update();
+	m_waveform.update(gameConfig);
 	m_window->draw(m_waveform);
 }
 
@@ -259,7 +252,7 @@ void StarFallVis::reloadShader()
 	m_shader.setUniform("scrw", m_scrW);
 	m_shader.setUniform("scrh", m_scrH);
 
-	getRandomColour(rgb, gameConfig->gradient, &gameConfig->gradCol1, &gameConfig->gradCol2);
+	mainColourChange(rgb, gameConfig->frameHi, 0, gameConfig->frameMax);
 
 	m_shader.setUniform("inColour", sf::Glsl::Vec4(rgb[0], rgb[1], rgb[2], 1.f));
 
