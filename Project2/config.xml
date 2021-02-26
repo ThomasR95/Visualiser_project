@@ -1,0 +1,58 @@
+<Config>
+    <Common startMaximised="false" lastWidth="1280" lastHeight="720" alwaysOnTop="false" lastAudioDevice="3" lastX="0" lastY="0"/>
+    <Presets>
+        <Preset Name="Between2Screens" AffectsVisuals="true" AffectsWindow="true">
+            <Gradient enabled="true" isLoudness="false" col1="4278190335" col2="3825139967"/>
+            <VisCycle>
+                <vID>Between</vID>
+            </VisCycle>
+            <Window x="-1947" y="-25" w="3892" h="1109" AlwaysOnTop="true" Transparent="false" MinOpacity="0.25"/>
+        </Preset>
+        <Preset Name="Default" AffectsVisuals="true" AffectsWindow="true">
+            <Gradient enabled="false" isLoudness="false" col1="4278190335" col2="65535"/>
+            <VisCycle>
+                <vID>StarFall</vID>
+                <vID>Tesseract</vID>
+                <vID>Vortex</vID>
+                <vID>Doorway</vID>
+                <vID>Archangel</vID>
+                <vID>Between</vID>
+            </VisCycle>
+            <Window x="0" y="0" w="1280" h="720" AlwaysOnTop="false" Transparent="false" MinOpacity="0.25"/>
+        </Preset>
+        <Preset Name="Screen2" AffectsVisuals="true" AffectsWindow="true">
+            <Gradient enabled="true" isLoudness="false" col1="4278190335" col2="3825139967"/>
+            <VisCycle>
+                <vID>Between</vID>
+            </VisCycle>
+            <Window x="-1282" y="10" w="1283" h="1027" AlwaysOnTop="false" Transparent="false" MinOpacity="0.25"/>
+        </Preset>
+        <Preset Name="Synthwave" AffectsVisuals="true" AffectsWindow="false">
+            <Gradient enabled="true" isLoudness="false" col1="4278255615" col2="16777215"/>
+            <VisCycle>
+                <vID>Tesseract</vID>
+                <vID>Doorway</vID>
+                <vID>Between</vID>
+                <vID>Singularity</vID>
+            </VisCycle>
+        </Preset>
+        <Preset Name="LoudnessDemo" AffectsVisuals="true" AffectsWindow="false">
+            <Gradient enabled="true" isLoudness="true" col1="1593861119" col2="4290075647"/>
+            <VisCycle>
+                <vID>StarFall</vID>
+                <vID>Tesseract</vID>
+                <vID>Vortex</vID>
+                <vID>Doorway</vID>
+                <vID>Archangel</vID>
+            </VisCycle>
+        </Preset>
+        <Preset Name="SeeingRed" AffectsVisuals="true" AffectsWindow="false">
+            <Gradient enabled="true" isLoudness="true" col1="4278190335" col2="4290117887"/>
+            <VisCycle>
+                <vID>Tesseract</vID>
+                <vID>Archangel</vID>
+                <vID>Between</vID>
+            </VisCycle>
+        </Preset>
+    </Presets>
+</Config>

@@ -154,7 +154,7 @@ void SingularityVis::render(float frameHi, float frameAverage, float frameMax, s
 	m_transparentShader.setUniform("minOpacity", 0.0f);
 
 	m_skyPlane.setRotation(m_degrees);
-	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 250), (sf::Uint8)(rgb[1] * 250), (sf::Uint8)(rgb[2] * 250), sf::Uint8(255 * mult) });
+	m_skyPlane.setFillColor({ (sf::Uint8)(rgb[0] * 255), (sf::Uint8)(rgb[1] * 255), (sf::Uint8)(rgb[2] * 255), sf::Uint8(255 * mult) });
 
 	m_window->draw(m_skyPlane, addStates);
 

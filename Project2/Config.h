@@ -30,6 +30,8 @@ typedef float SAMPLE;
 #define PRINTF_S_FORMAT "%.8f"
 
 
+class xmlConfigLoader;
+
 typedef struct
 {
 	
@@ -38,6 +40,8 @@ paTestData;
 
 struct Config
 {
+	xmlConfigLoader* m_loader;
+
 	//Window setup
 #pragma region Window Setup
 	bool transparent = false;
@@ -59,6 +63,7 @@ struct Config
 	sf::Shader m_shader;
 	float minOpacity = 0.25f;
 
+	bool startMaximised = false;
 	bool isFullScreen = false;
 	bool wasFullScreen = false;
 	bool alwaysOnTop = false;
@@ -87,7 +92,7 @@ struct Config
 
 	SAMPLE frameHi;
 	PaStreamParameters params;
-	PaDeviceIndex devIdx;
+	PaDeviceIndex devIdx = -1;
 	int nDevices;
 	std::vector<std::pair<std::string, int>> deviceList;
 	paTestData *streamData;
@@ -154,15 +159,10 @@ struct Config
 	bool clearWindowInfo = false;
 	bool windowSettingsChanged = false;
 
-	void saveToSettingsFile(const std::string& presetName);
-	void loadFromSettingsFile(const std::string& presetName);
-
-	void loadPresetList();
 #pragma endregion
 
 	//debug audio bars
 	std::vector<sf::RectangleShape> bars;
 
-private:
-	bool gotoPresetLine(std::ifstream& file, const std::string& presetName, std::ofstream* tmp = nullptr);
+
 };

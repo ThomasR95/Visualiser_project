@@ -158,9 +158,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SingularityVis.cpp" />
     <ClCompile Include="StarFallVis.cpp" />
+    <ClCompile Include="tinyxml2\tinyxml2.cpp" />
     <ClCompile Include="Visualiser.cpp" />
     <ClCompile Include="TesseractVis.cpp" />
     <ClCompile Include="VortexVis.cpp" />
+    <ClCompile Include="xmlConfig.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\wave.frag" />
@@ -174,9 +176,11 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="SingularityVis.h" />
     <ClInclude Include="StarFallVis.h" />
+    <ClInclude Include="tinyxml2\tinyxml2.h" />
     <ClInclude Include="Visualiser.h" />
     <ClInclude Include="TesseractVis.h" />
     <ClInclude Include="VortexVis.h" />
+    <ClInclude Include="xmlConfig.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon1.ico" />

@@ -9,6 +9,7 @@
 #include "imgui-SFML.h"
 
 #include "Config.h"
+#include "xmlConfig.h"
 
 #include "StarFallVis.h"
 #include "TesseractVis.h"
@@ -90,9 +91,12 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
 
 	int numChannels = gameConfig->params.channelCount;
 
-	//Erase old frames, leave enough in the vector for one checkSize
-	if (gameConfig->frames.size() > checkSize)
-		gameConfig->frames.erase(gameConfig->frames.begin(), gameConfig->frames.begin() + (gameConfig->frames.size()-checkSize));
+	//Erase old frames, leave enough in the vector for 2 checkSizes
+	{ //lock for frequency data
+		std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
+		if (gameConfig->frames.size() > checkSize*2)
+			gameConfig->frames.erase(gameConfig->frames.begin(), gameConfig->frames.begin() + (gameConfig->frames.size() - checkSize*2));
+	}
 
 	SAMPLE *rptr = (SAMPLE*)inputBuffer;
 
@@ -145,17 +149,24 @@ void initWindow(bool firstStart = false)
 {
 	if (gameConfig->isFullScreen)
 	{
-		gameConfig->minScrW = gameConfig->m_window.getSize().x;
-		gameConfig->minScrH = gameConfig->m_window.getSize().y;
+		if (gameConfig->m_currentWindow)
+		{
+			gameConfig->minScrW = gameConfig->m_window.getSize().x;
+			gameConfig->minScrH = gameConfig->m_window.getSize().y;
+			auto pos = gameConfig->m_window.getPosition();
+			gameConfig->scrX = pos.x;
+			gameConfig->scrY = pos.y;
+		}
 		gameConfig->scrW = gameConfig->fullScrW;
 		gameConfig->scrH = gameConfig->fullScrH;
 		if (!gameConfig->wasFullScreen || firstStart)
 		{
-			auto pos = gameConfig->m_window.getPosition();
-			gameConfig->scrX = pos.x;
-			gameConfig->scrY = pos.y;
-			if (gameConfig->transparent)
+			if (gameConfig->transparent || true)
 			{
+				if (firstStart)
+				{
+					gameConfig->m_window.create(sf::VideoMode(gameConfig->fullScrW, gameConfig->fullScrH), "VisualiStar", 0);
+				}
 				gameConfig->scrW = gameConfig->fullScrW + 1;
 				gameConfig->scrH = gameConfig->fullScrH + 1;
 				gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
@@ -197,7 +208,6 @@ void initWindow(bool firstStart = false)
 	gameConfig->m_RT.create(gameConfig->scrW, gameConfig->scrH);
 
 	gameConfig->m_currentWindow = &gameConfig->m_window;
-	
 
 	gameConfig->topLeftBox.setPosition(0, 0);
 	gameConfig->topLeftBox.setSize({ 20,20 });
@@ -237,81 +247,31 @@ void swapFullScreen()
 	gameConfig->m_currentVis->reloadShader();
 }
 
-void menu()
+void menuHelp(ImGuiStyle& style)
 {
-	ImGui::SFML::Update(gameConfig->m_window, gameConfig->m_timer.restart());
-
-	auto& style = ImGui::GetStyle();
-	style.FrameRounding = 5;
-	style.WindowTitleAlign = style.ButtonTextAlign;
-
-	ImVec4 colA = gameConfig->gradCol1;
-	ImVec4 colB = gameConfig->gradCol2;
-	ImVec4 halfGrad(mean(colA.x, colB.x), mean(colA.y, colB.y), mean(colA.z, colB.z), 1.f );
-
-	ImVec4 col_dark(halfGrad.x*0.3f, halfGrad.y*0.3f, halfGrad.z*0.3f, 1.f);
-	ImVec4 col_med(halfGrad.x*0.5f, halfGrad.y*0.5f, halfGrad.z*0.5f, 1.f);
-	ImVec4 col_light(halfGrad.x*0.8f, halfGrad.y*0.8f, halfGrad.z*0.8f, 1.f);
-	ImVec4 col_light2(halfGrad);
-	ImVec4 col_light2a(mean(halfGrad.x, 0.6f), mean(halfGrad.y, 0.6f), mean(halfGrad.z, 0.6f), 1.f);
-	ImVec4 col_light3(mean(halfGrad.x,1.f), mean(halfGrad.y, 1.f), mean(halfGrad.z, 1.f), 1.f);
-
-	style.Colors[ImGuiCol_WindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
-	style.Colors[ImGuiCol_Button] = style.Colors[ImGuiCol_Header] = col_med;
-	style.Colors[ImGuiCol_ButtonActive] = style.Colors[ImGuiCol_HeaderActive] = col_light2;
-	style.Colors[ImGuiCol_ButtonHovered] = style.Colors[ImGuiCol_HeaderHovered] = col_light;
-	style.Colors[ImGuiCol_TitleBgActive] = style.Colors[ImGuiCol_TitleBg] = style.Colors[ImGuiCol_TitleBgCollapsed] = col_dark;
-	style.WindowTitleAlign = { 0.5f, 0.5f };
-	style.AntiAliasedLines = true;
-
-	ImGui::SetNextWindowPosCenter();
-	ImGui::SetNextWindowSize({ 480, -1 });
-
-	ImVec4 greyoutCol(0.3, 0.3, 0.3, 1.0);
-	ImVec4 normalTextCol(col_light3);
-
-	ImGui::Begin("VisualiStar", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-
-	ImDrawList* dList = ImGui::GetWindowDrawList();
-
-	if (ImGui::Button("Close Menu (Esc)", { -1,20 }))
-	{
-		gameConfig->menuShowing = false;
-		if (gameConfig->transparent)
-			SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
-	}
-
-	//	FULLSCREEN
-	if (ImGui::Button(gameConfig->isFullScreen? "Exit Fullscreen (F11)" : "Fullscreen (F11)", { -1,20 }))
-	{
-		swapFullScreen();
-	}
-
-		if (ImGui::Button("Help", { ImGui::GetWindowWidth()/2 - 10,20 }))
+	if (ImGui::Button("Help", { ImGui::GetWindowWidth() / 2 - 10,20 }))
 	{
 		float h = ImGui::GetWindowHeight();
 		ImGui::SetNextWindowSize({ 400, h });
 		ImGui::OpenPopup("Help");
 	}
-
-	ImGui::PushStyleColor(ImGuiCol_PopupBg, { 0.1f,0.1f,0.1f,1.f });
 	ImGui::SetNextWindowPosCenter();
 	ImGui::SetNextWindowSize({ 400,-1 });
 	//ImGui::SetNextWindowSizeConstraints({ 400, 400 }, { -1,-1 });
 	if (ImGui::BeginPopup("Help", ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light3);
-		ImGui::TextColored(col_light2a, "Close Menu:");				ImGui::SameLine(160); ImGui::TextWrapped("Closes the main menu. ");
-		ImGui::TextColored(col_light2a, "Fullscreen:");				ImGui::SameLine(160); ImGui::TextWrapped("Toggles fullscreen.");
-		ImGui::TextColored(col_light2a, "Show Advanced...:");		ImGui::SameLine(160); ImGui::TextWrapped("Reveals some advanced options.");
-		ImGui::TextColored(col_light2a, "Choose Visualisers:");		ImGui::SameLine(160); ImGui::TextWrapped("The tickbox beside each name lets you include/exclude certain visualisers from the Cycle. \nThe play button beside each name will instantly switch to that visualiser.");
-		ImGui::TextColored(col_light2a, "Cycle:");					ImGui::SameLine(160); ImGui::TextWrapped("Changes the visualiser periodically. You can set the delay when the box is ticked.");
-		ImGui::TextColored(col_light2a, "Colours:");				ImGui::SameLine(160); ImGui::TextWrapped("Change what colours the visualisers will use.");
-		ImGui::TextColored(col_light2a, "Audio Input:");			ImGui::SameLine(160); ImGui::TextWrapped("Lets you select which audio device affects the visuals.");
-		ImGui::TextColored(col_light2a, "Presets:");				ImGui::SameLine(160); ImGui::TextWrapped("Save and load Presets for the visualiser and window settings.");
-		ImGui::TextColored(col_light2a, "Exit VisualiStar:");		ImGui::SameLine(160); ImGui::TextWrapped("Closes the program.");
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Text]);
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Close Menu:");				ImGui::SameLine(160); ImGui::TextWrapped("Closes the main menu. ");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Fullscreen:");				ImGui::SameLine(160); ImGui::TextWrapped("Toggles fullscreen.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Show Advanced...:");		ImGui::SameLine(160); ImGui::TextWrapped("Reveals some advanced options.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Choose Visualisers:");		ImGui::SameLine(160); ImGui::TextWrapped("The tickbox beside each name lets you include/exclude certain visualisers from the Cycle. \nThe play button beside each name will instantly switch to that visualiser.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Cycle:");					ImGui::SameLine(160); ImGui::TextWrapped("Changes the visualiser periodically. You can set the delay when the box is ticked.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Colours:");				ImGui::SameLine(160); ImGui::TextWrapped("Change what colours the visualisers will use.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Audio Input:");			ImGui::SameLine(160); ImGui::TextWrapped("Lets you select which audio device affects the visuals.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Presets:");				ImGui::SameLine(160); ImGui::TextWrapped("Save and load Presets for the visualiser and window settings.");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Exit VisualiStar:");		ImGui::SameLine(160); ImGui::TextWrapped("Closes the program.");
 		ImGui::NewLine();
-		ImGui::TextColored(col_light2a, "Window Controls:");
+		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Window Controls:");
 		ImGui::TextWrapped("Drag from the top-left or bottom-right corner to resize the window.\nDrag with the middle mouse button to move the whole window.");
 		ImGui::NewLine();
 		ImGui::NewLine();
@@ -333,16 +293,17 @@ void menu()
 		}
 		ImGui::EndPopup();
 	}
-	ImGui::PopStyleColor();
+}
 
-	ImGui::SameLine(); 
-	if (ImGui::Button(gameConfig->advancedMenuShowing? "Hide Advanced"  : "Show Advanced...", { -1,20 }))
+void menuAdvanced(ImGuiStyle& style)
+{
+	if (ImGui::Button(gameConfig->advancedMenuShowing ? "Hide Advanced" : "Show Advanced...", { -1,20 }))
 	{
 		gameConfig->advancedMenuShowing = !gameConfig->advancedMenuShowing;
 	}
 	if (gameConfig->advancedMenuShowing)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, normalTextCol);
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Text]);
 		float transChkBoxPos = ImGui::GetCursorPosY();
 		if (ImGui::Checkbox("Transparent", &gameConfig->transparent))
 		{
@@ -390,7 +351,7 @@ void menu()
 				}
 			}
 		}
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Separator]);
 		ImGui::SameLine(140); ImGui::TextWrapped("Turns VisualiStar into a transparent overlay so that you can use other programs beneath it.");
 		ImGui::PopStyleColor();
 
@@ -416,12 +377,12 @@ void menu()
 				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 		}
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Separator]);
 		ImGui::SameLine(140); ImGui::TextWrapped("Keeps the visualiser above all other windows on your screen.");
 		ImGui::PopStyleColor();
 
 		ImGui::Checkbox("Show FPS", &gameConfig->showFPS);
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Separator]);
 		ImGui::SameLine(140); ImGui::TextWrapped("Shows an FPS counter (when menu is inactive).");
 		ImGui::PopStyleColor();
 
@@ -429,27 +390,24 @@ void menu()
 		{
 			initWindow();
 		}
-		ImGui::PushStyleColor(ImGuiCol_Text, col_light2a);
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Separator]);
 		ImGui::SameLine(140); ImGui::TextWrapped("Enable/Disable Vertical Sync.");
 		ImGui::PopStyleColor();
 
 		ImGui::PopStyleColor();
 	}
+}
 
-	ImGui::Separator();
+void menuVisualisers(ImGuiStyle& style)
+{
 
-	//	VISUALISER LIST
-
-	ImGui::Columns(2, "visualisers/options", false);
-	ImGui::SetColumnWidth(0, 260);
-
-	ImGui::TextColored(normalTextCol, "Choose Visualisers");
+	ImGui::TextColored(style.Colors[ImGuiCol_Text], "Choose Visualisers");
 	ImGui::TextColored({ 0.5, 0.5, 0.5, 1.0 }, "In Cycle  Play   Name");
 	ImGui::BeginChild("Choose Visualiser", { -1, 180 });
 	for (int v = 0; v < gameConfig->m_visualisers.size(); v++)
 	{
 		auto& vis = gameConfig->m_visualisers[v];
-		
+
 		ImGui::SetCursorPosX(18);
 		ImGui::PushID((vis.id + "tick").c_str());
 		ImGui::Checkbox("", &vis.inCycle);
@@ -469,17 +427,18 @@ void menu()
 		}
 		ImGui::PopID();
 		ImGui::SameLine(119);
-		ImGui::TextColored(gameConfig->visIdx == v ? col_light3 : col_light2, vis.id.c_str());
+		ImGui::TextColored(gameConfig->visIdx == v ? style.Colors[ImGuiCol_Text] : style.Colors[ImGuiCol_ButtonActive], vis.id.c_str());
 	}
 	ImGui::EndChild();
+}
 
-	ImGui::NextColumn();
-
-	ImGui::PushStyleColor(ImGuiCol_Text, col_light3);
+void menuVisOptions(ImGuiStyle& style)
+{
+	ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_Text]);
 	ImGui::Checkbox("Cycle", &gameConfig->cycleVis);
 	ImGui::PopStyleColor();
 
-	ImGui::TextColored(gameConfig->cycleVis ? normalTextCol : greyoutCol, "Time: %ds", gameConfig->cycleTime);
+	ImGui::TextColored(gameConfig->cycleVis ? style.Colors[ImGuiCol_Text] : style.Colors[ImGuiCol_TextDisabled], "Time: %ds", gameConfig->cycleTime);
 	ImGui::SameLine();
 	if (ImGui::SmallButton("-"))
 	{
@@ -496,12 +455,12 @@ void menu()
 	int countdown = gameConfig->cycleTime - (int)gameConfig->visTimer.getElapsedTime().asSeconds();
 	if (countdown < 0) countdown = 0;
 
-	ImGui::TextColored(col_light, gameConfig->cycleVis ? "Next change - %ds" : "", countdown);
+	ImGui::TextColored(style.Colors[ImGuiCol_HeaderHovered], gameConfig->cycleVis ? "Next change - %ds" : "", countdown);
 
 	auto colPos = ImGui::GetCursorPosY();
 
 	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
-	ImGui::TextColored(normalTextCol, "Colours:"); ImGui::SameLine();
+	ImGui::TextColored(style.Colors[ImGuiCol_Text], "Colours:"); ImGui::SameLine();
 	if (gameConfig->gradient)
 	{
 		if (ImGui::Button("Gradient"))
@@ -512,7 +471,7 @@ void menu()
 		ImGui::Checkbox("Loudness Gradient", &gameConfig->gradientLoudness);
 
 		//ImGui::SameLine();
-		if (ImGui::ColorButton("Colour 1", gameConfig->gradCol1, 0, {10,20}))
+		if (ImGui::ColorButton("Colour 1", gameConfig->gradCol1, 0, { 10,20 }))
 		{
 			gameConfig->editingColour = &gameConfig->gradCol1;
 			ImGui::OpenPopup("ColPopup");
@@ -523,6 +482,7 @@ void menu()
 		auto pos2 = ImVec2(pos1.x + 130, pos1.y + 20);
 		ImColor col1(gameConfig->gradCol1);
 		ImColor col2(gameConfig->gradCol2);
+		ImDrawList* dList = ImGui::GetWindowDrawList();
 		dList->AddRectFilledMultiColor(pos1, pos2, col1, col2, col2, col1);
 		ImGui::SameLine(148);
 
@@ -550,9 +510,6 @@ void menu()
 
 			ImGui::EndPopup();
 		}
-
-		ImGui::NewLine();
-
 	}
 	else
 	{
@@ -562,13 +519,11 @@ void menu()
 			gameConfig->m_currentVis->reloadShader();
 		}
 	}
+}
 
-	ImGui::NewLine();
-
-
-	//	INPUT LIST
-	ImGui::SetCursorPosY(colPos+72);
-	ImGui::TextColored(normalTextCol, "Audio Input");
+void menuAudio(ImGuiStyle& style)
+{
+	ImGui::TextColored(style.Colors[ImGuiCol_Text], "Audio Input");
 
 	if (gameConfig->firstMenu)
 	{
@@ -590,7 +545,7 @@ void menu()
 		for (auto& dev : gameConfig->deviceList)
 		{
 			bool active = gameConfig->devIdx == dev.second;
-			if(ImGui::Selectable(dev.first.c_str(), &active))
+			if (ImGui::Selectable(dev.first.c_str(), &active))
 			{
 				Pa_StopStream(gameConfig->AudioStr);
 				Pa_CloseStream(gameConfig->AudioStr);
@@ -620,19 +575,233 @@ void menu()
 				gameConfig->trebleHi = 0;
 				gameConfig->trebleAverage = 0;
 
-
 				gameConfig->m_currentVis->init(&gameConfig->m_window, &gameConfig->m_RT, gameConfig);
 				gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
 				gameConfig->m_currentVis->reloadShader();
-
-				
 			}
 		}
 		ImGui::EndCombo();
 	}
 	ImGui::PopID();
 	ImGui::PopItemWidth();
+}
 
+void menuPresets(ImGuiStyle& style)
+{
+	if (ImGui::Button("Presets", { -1,20 }))
+	{
+		ImGui::OpenPopup("Presets");
+	}
+	if (ImGui::BeginPopup("Presets", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
+	{
+		ImGui::SetWindowSize({ 400,-1 });
+		ImGui::SetWindowPos({ gameConfig->scrW / 2 - 200, gameConfig->scrH / 3 });
+		std::string prevName = "";
+		if (gameConfig->m_presetNames.size()) prevName = gameConfig->m_presetNames[gameConfig->m_presetIdx];
+		if (ImGui::BeginCombo("Presets", prevName.c_str()))
+		{
+			for (int p = 0; p < gameConfig->m_presetNames.size(); p++)
+			{
+				bool selected = gameConfig->m_presetIdx == p;
+				if (ImGui::Selectable(gameConfig->m_presetNames[p].c_str(), &selected))
+				{
+					gameConfig->m_presetIdx = p;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Load", { 100,20 }) && gameConfig->m_presetNames.size())
+		{
+			//gameConfig->loadFromSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
+			if (gameConfig->m_loader->loadPreset(gameConfig->m_presetNames[gameConfig->m_presetIdx]))
+			{
+				gameConfig->m_settingsFileBoxName.clear();
+				gameConfig->m_settingsFileBoxName.resize(30);
+				int i = 0;
+				for (auto& c : gameConfig->m_presetNames[gameConfig->m_presetIdx])
+					gameConfig->m_settingsFileBoxName[i++] = c;
+			}
+			gameConfig->m_settingsFileBoxName.clear();
+
+			if (gameConfig->windowSettingsChanged)
+			{
+				initWindow();
+				gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
+				gameConfig->m_currentVis->reloadShader();
+				gameConfig->windowSettingsChanged = false;
+			}
+		}
+		ImGui::Separator();
+		ImGui::TextColored(style.Colors[ImGuiCol_Text], "Save Preset");
+		ImGui::InputText("Name", gameConfig->m_settingsFileBoxName.data(), 30);
+		ImGui::SameLine();
+		if (ImGui::Button("x", { 20,20 }))
+		{
+			gameConfig->m_settingsFileBoxName.clear();
+			gameConfig->m_settingsFileBoxName.resize(30);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Use Current", { -1,20 }) && gameConfig->m_presetNames.size())
+		{
+			gameConfig->m_settingsFileBoxName.clear();
+			gameConfig->m_settingsFileBoxName.resize(30);
+			int i = 0;
+			for (auto& c : gameConfig->m_presetNames[gameConfig->m_presetIdx])
+				gameConfig->m_settingsFileBoxName[i++] = c;
+		}
+
+		bool overwriting = false;
+		for (auto& n : gameConfig->m_presetNames)
+		{
+			if (n == std::string(gameConfig->m_settingsFileBoxName.data()))
+			{
+				overwriting = true;
+				break;
+			}
+		}
+
+		std::string saveCheckBox = "Save";
+		if (overwriting) saveCheckBox = "Update";
+
+		ImGui::PushID("VisSave");
+		ImGui::TextColored(style.Colors[ImGuiCol_Text], "Visualiser Settings");
+		ImGui::SameLine(); ImGui::TextColored(style.Colors[ImGuiCol_Separator], "(Visualisers in cycle, colours)");
+
+		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveVisInfo))
+		{
+			if (gameConfig->saveVisInfo)
+				gameConfig->clearVisInfo = false;
+		}
+		if (overwriting)
+		{
+			ImGui::SameLine();
+			if (ImGui::Checkbox("Clear", &gameConfig->clearVisInfo))
+			{
+				if (gameConfig->clearVisInfo)
+					gameConfig->saveVisInfo = false;
+			}
+		}
+		ImGui::PopID();
+		ImGui::PushID("WndSave");
+		ImGui::TextColored(style.Colors[ImGuiCol_Text], "Window Settings");
+		ImGui::SameLine(); ImGui::TextColored(style.Colors[ImGuiCol_Separator], "(Size, position)");
+
+		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveWindowInfo))
+		{
+			if (gameConfig->saveWindowInfo)
+				gameConfig->clearWindowInfo = false;
+		}
+		if (overwriting)
+		{
+			ImGui::SameLine();
+			if (ImGui::Checkbox("Clear", &gameConfig->clearWindowInfo))
+			{
+				if (gameConfig->clearWindowInfo)
+					gameConfig->saveWindowInfo = false;
+			}
+		}
+		ImGui::PopID();
+
+		std::string saveName = "Save";
+		if (overwriting) saveName = "Overwrite";
+
+		std::string name(gameConfig->m_settingsFileBoxName.data());
+
+		if ((name != "") && ImGui::Button(saveName.c_str(), { -1,20 }))
+		{
+			if (std::find(gameConfig->m_presetNames.begin(), gameConfig->m_presetNames.end(), name) == gameConfig->m_presetNames.end())
+			{
+				gameConfig->m_presetNames.push_back(name);
+				gameConfig->m_presetIdx = gameConfig->m_presetNames.size() - 1;
+			}
+			//gameConfig->saveToSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
+			gameConfig->m_loader->savePreset(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
+			gameConfig->m_settingsFileBoxName.clear();
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+void menu()
+{
+	ImGui::SFML::Update(gameConfig->m_window, gameConfig->m_timer.restart());
+
+	auto& style = ImGui::GetStyle();
+	style.FrameRounding = 5;
+	style.WindowTitleAlign = style.ButtonTextAlign;
+
+	ImVec4 colA = gameConfig->gradCol1;
+	ImVec4 colB = gameConfig->gradCol2;
+	ImVec4 halfGrad(mean(colA.x, colB.x), mean(colA.y, colB.y), mean(colA.z, colB.z), 1.f );
+
+	ImVec4 col_dark(halfGrad.x*0.3f, halfGrad.y*0.3f, halfGrad.z*0.3f, 1.f);
+	ImVec4 col_med(halfGrad.x*0.5f, halfGrad.y*0.5f, halfGrad.z*0.5f, 1.f);
+	ImVec4 col_light(halfGrad.x*0.8f, halfGrad.y*0.8f, halfGrad.z*0.8f, 1.f);
+	ImVec4 col_light2(halfGrad);
+	ImVec4 col_light2a(mean(halfGrad.x, 0.6f), mean(halfGrad.y, 0.6f), mean(halfGrad.z, 0.6f), 1.f);
+	ImVec4 col_light3(mean(halfGrad.x,1.f), mean(halfGrad.y, 1.f), mean(halfGrad.z, 1.f), 1.f);
+	ImVec4 greyoutCol(0.3, 0.3, 0.3, 1.0);
+
+	style.Colors[ImGuiCol_WindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
+	style.Colors[ImGuiCol_ChildWindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
+	style.Colors[ImGuiCol_PopupBg] = { 0.05f,0.05f,0.05f, 1.0f };
+	style.Colors[ImGuiCol_Button] = style.Colors[ImGuiCol_Header] = col_med;
+	style.Colors[ImGuiCol_ButtonActive] = style.Colors[ImGuiCol_HeaderActive] = col_light2;
+	style.Colors[ImGuiCol_ButtonHovered] = style.Colors[ImGuiCol_HeaderHovered] = col_light;
+	style.Colors[ImGuiCol_TitleBgActive] = style.Colors[ImGuiCol_TitleBg] = style.Colors[ImGuiCol_TitleBgCollapsed] = col_dark;
+	style.Colors[ImGuiCol_Text] = col_light3;
+	style.Colors[ImGuiCol_TextDisabled] = greyoutCol;
+	style.Colors[ImGuiCol_Separator] = col_light2a;
+	style.WindowTitleAlign = { 0.5f, 0.5f };
+	style.AntiAliasedLines = true;
+
+	ImGui::SetNextWindowPosCenter();
+	ImGui::SetNextWindowSize({ 480, -1 });
+
+	ImGui::Begin("VisualiStar", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
+
+	ImDrawList* dList = ImGui::GetWindowDrawList();
+
+	if (ImGui::Button("Close Menu (Esc)", { -1,20 }))
+	{
+		gameConfig->menuShowing = false;
+		if (gameConfig->transparent)
+			SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
+	}
+
+	//	FULLSCREEN
+	if (ImGui::Button(gameConfig->isFullScreen? "Exit Fullscreen (F11)" : "Fullscreen (F11)", { -1,20 }))
+	{
+		swapFullScreen();
+	}
+
+	menuHelp(style);
+
+	ImGui::SameLine(); 
+	
+	menuAdvanced(style);
+
+	ImGui::Separator();
+	auto separatorPos = ImGui::GetCursorPosY();
+
+	//	VISUALISER LIST
+	ImGui::Columns(2, "visualisers/options", false);
+	ImGui::SetColumnWidth(0, 260);
+
+	menuVisualisers(style);
+
+	ImGui::NextColumn();
+
+	menuVisOptions(style);
+
+	ImGui::NewLine();
+
+	//	INPUT LIST
+	ImGui::SetCursorPosY(separatorPos+160);
+	menuAudio(style);
+	
 	ImGui::NewLine();
 
 	//WIP Background image stuff here
@@ -707,130 +876,7 @@ void menu()
 
 	ImGui::Columns();
 
-	if (ImGui::Button("Presets", { -1,20 }))
-	{
-		ImGui::OpenPopup("Presets");
-	}
-	if(ImGui::BeginPopup("Presets", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
-	{
-		ImGui::SetWindowSize({ 400,-1 });
-		std::string prevName = "";
-		if (gameConfig->m_presetNames.size()) prevName = gameConfig->m_presetNames[gameConfig->m_presetIdx];
-		if (ImGui::BeginCombo("Presets", prevName.c_str()))
-		{
-			for (int p = 0; p < gameConfig->m_presetNames.size(); p++)
-			{
-				bool selected = gameConfig->m_presetIdx == p;
-				if (ImGui::Selectable(gameConfig->m_presetNames[p].c_str(), &selected))
-				{
-					gameConfig->m_presetIdx = p;
-				}
-			}
-			ImGui::EndCombo();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Load", { 100,20 }) && gameConfig->m_presetNames.size())
-		{
-			gameConfig->loadFromSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
-			gameConfig->m_settingsFileBoxName.clear();
-
-			if (gameConfig->windowSettingsChanged)
-			{
-				initWindow();
-				gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
-				gameConfig->m_currentVis->reloadShader();
-				gameConfig->windowSettingsChanged = false;
-			}
-		}
-		ImGui::Separator();
-		ImGui::TextColored(normalTextCol, "Save Preset");
-		ImGui::InputText("Name", gameConfig->m_settingsFileBoxName.data(), 30);
-		ImGui::SameLine();
-		if (ImGui::Button("x", { 20,20 }))
-		{
-			gameConfig->m_settingsFileBoxName.clear();
-			gameConfig->m_settingsFileBoxName.resize(30);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Use Current", { -1,20 }) && gameConfig->m_presetNames.size())
-		{
-			gameConfig->m_settingsFileBoxName.clear();
-			gameConfig->m_settingsFileBoxName.resize(30);
-			int i = 0;
-			for (auto& c : gameConfig->m_presetNames[gameConfig->m_presetIdx])
-				gameConfig->m_settingsFileBoxName[i++] = c;
-		}
-
-		bool overwriting = false;
-		for (auto& n : gameConfig->m_presetNames)
-		{
-			if (n == std::string(gameConfig->m_settingsFileBoxName.data()))
-			{
-				overwriting = true;
-				break;
-			}
-		}
-
-		std::string saveCheckBox = "Save";
-		if (overwriting) saveCheckBox = "Update";
-
-		ImGui::PushID("VisSave");
-		ImGui::TextColored(normalTextCol, "Visualiser Settings");
-		ImGui::SameLine(); ImGui::TextColored(col_light2a, "(Visualisers in cycle, colours)");
-
-		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveVisInfo))
-		{
-			if (gameConfig->saveVisInfo)
-				gameConfig->clearVisInfo = false;
-		}
-		if (overwriting)
-		{
-			ImGui::SameLine();
-			if (ImGui::Checkbox("Clear", &gameConfig->clearVisInfo))
-			{
-				if (gameConfig->clearVisInfo)
-					gameConfig->saveVisInfo = false;
-			}
-		}
-		ImGui::PopID();
-		ImGui::PushID("WndSave");
-		ImGui::TextColored(normalTextCol, "Window Settings");
-		ImGui::SameLine(); ImGui::TextColored(col_light2a, "(Size, position)");
-
-		if (ImGui::Checkbox(saveCheckBox.c_str(), &gameConfig->saveWindowInfo))
-		{
-			if (gameConfig->saveWindowInfo)
-				gameConfig->clearWindowInfo = false;
-		}
-		if (overwriting)
-		{
-			ImGui::SameLine();
-			if (ImGui::Checkbox("Clear", &gameConfig->clearWindowInfo))
-			{
-				if (gameConfig->clearWindowInfo)
-					gameConfig->saveWindowInfo = false;
-			}
-		}
-		ImGui::PopID();
-
-		std::string saveName = "Save";
-		if (overwriting) saveName = "Overwrite";
-
-		std::string name(gameConfig->m_settingsFileBoxName.data());
-
-		if ( (name != "") && ImGui::Button(saveName.c_str(), { -1,20 }))
-		{
-			if (std::find(gameConfig->m_presetNames.begin(), gameConfig->m_presetNames.end(), name) == gameConfig->m_presetNames.end())
-			{
-				gameConfig->m_presetNames.push_back(name);
-				gameConfig->m_presetIdx = gameConfig->m_presetNames.size() - 1;
-			}
-			gameConfig->saveToSettingsFile(gameConfig->m_presetNames[gameConfig->m_presetIdx]);
-			gameConfig->m_settingsFileBoxName.clear();
-		}
-
-		ImGui::EndPopup();
-	}
+	menuPresets(style);
 
 	ImGui::Separator();
 
@@ -956,7 +1002,7 @@ void handleEvents()
 				gameConfig->resizeBox.setPosition(0, 0);
 				gameConfig->resizeBox.setSize({ pos.x, pos.y });
 			}
-			else if (sf::Mouse::isButtonPressed(sf::Mouse::Middle))
+			else if (sf::Mouse::isButtonPressed(sf::Mouse::Middle) && !gameConfig->isFullScreen)
 			{
 				if (gameConfig->lastMiddleClickPosition == sf::Vector2i(-1, -1))
 					gameConfig->lastMiddleClickPosition = sf::Mouse::getPosition(gameConfig->m_window);
@@ -1037,7 +1083,7 @@ void render()
 
 int main()
 {
-	PaError             err = paNoError;
+	PaError err = paNoError;
 
 	std::srand(time(0));
 
@@ -1045,9 +1091,15 @@ int main()
 
 	getWindowSizes();
 
+	xmlConfigLoader xmlLoader(gameConfig, "config.xml");
+	gameConfig->m_loader = &xmlLoader;
+	xmlLoader.loadCommon();
+	xmlLoader.loadPresetNames();
+
+	if (gameConfig->startMaximised)
+		gameConfig->isFullScreen = true;
+
 	gameConfig->ico.loadFromFile("icon1.png");
-	gameConfig->m_settingsFile = "presets.txt";
-	gameConfig->loadPresetList();
 	gameConfig->m_settingsFileBoxName.resize(30);
 
 	initWindow(true);
@@ -1070,7 +1122,6 @@ int main()
 	}
 
 	gameConfig->m_currentVis = gameConfig->m_visualisers[0].vis.get();
-
 	gameConfig->m_currentVis->resetPositions(gameConfig->scrW, gameConfig->scrH, gameConfig->ratio);
 	gameConfig->m_currentVis->reloadShader();
 
@@ -1088,27 +1139,37 @@ int main()
 	//initialise PortAudio
 	err = Pa_Initialize();
 	gameConfig->nDevices = Pa_GetDeviceCount();
-
 	gameConfig->params.sampleFormat = PA_SAMPLE_TYPE;
 	double sRate;
-
 	auto defOutInf = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
 
-	//find an audio input
-	for (PaDeviceIndex dI = 0; dI < gameConfig->nDevices; dI++)
+	if (gameConfig->devIdx == -1)
 	{
-		auto info = Pa_GetDeviceInfo(dI);
-		std::string name = info->name;
-		if (name.find("Stereo Mix") != std::string::npos || name.find("Wave Out") != std::string::npos)
+		//find an audio input
+		for (PaDeviceIndex dI = 0; dI < gameConfig->nDevices; dI++)
 		{
-			gameConfig->devIdx = dI;
-			gameConfig->params.device = gameConfig->devIdx;
-			gameConfig->params.channelCount = min(2, info->maxInputChannels);
-			gameConfig->params.suggestedLatency = info->defaultLowInputLatency;
-			gameConfig->params.hostApiSpecificStreamInfo = nullptr;
-			sRate = info->defaultSampleRate;
-			break;
+			auto info = Pa_GetDeviceInfo(dI);
+			std::string name = info->name;
+			if (name.find("Stereo Mix") != std::string::npos || name.find("Wave Out") != std::string::npos)
+			{
+				gameConfig->devIdx = dI;
+				gameConfig->params.device = gameConfig->devIdx;
+				gameConfig->params.channelCount = min(2, info->maxInputChannels);
+				gameConfig->params.suggestedLatency = info->defaultLowInputLatency;
+				gameConfig->params.hostApiSpecificStreamInfo = nullptr;
+				sRate = info->defaultSampleRate;
+				break;
+			}
 		}
+	}
+	else
+	{
+		auto info = Pa_GetDeviceInfo(gameConfig->devIdx);
+		gameConfig->params.device = gameConfig->devIdx;
+		gameConfig->params.channelCount = min(2, info->maxInputChannels);
+		gameConfig->params.suggestedLatency = info->defaultLowInputLatency;
+		gameConfig->params.hostApiSpecificStreamInfo = nullptr;
+		sRate = info->defaultSampleRate;
 	}
 
 	err = Pa_OpenStream(&gameConfig->AudioStr, &gameConfig->params, nullptr, sRate, FRAMES_PER_BUFFER, paClipOff, recordCallback, gameConfig->streamData);
@@ -1130,8 +1191,8 @@ int main()
 		//Do fourier transform
 		{ //lock for frequency data
 			std::lock_guard<std::mutex> guard(gameConfig->FreqDataMutex);
-
-			gameConfig->FFTdata = std::vector<SAMPLE>(gameConfig->frames.begin(), gameConfig->frames.begin() + (FRAMES_PER_BUFFER * 2));
+			if(gameConfig->frames.size() >= (FRAMES_PER_BUFFER * 2))
+				gameConfig->FFTdata = std::vector<SAMPLE>(gameConfig->frames.begin(), gameConfig->frames.begin() + (FRAMES_PER_BUFFER * 2));
 		} //end lock
 
 		auto halfSize = gameConfig->FFTdata.size() / 2;
@@ -1241,11 +1302,12 @@ int main()
 	Pa_CloseStream(gameConfig->AudioStr);
 	Pa_Terminate();
 
+	xmlLoader.saveCommon();
+
 	ImGui::SFML::Shutdown();
 
 	if (gameConfig->m_currentWindow->isOpen())
 		gameConfig->m_currentWindow->close();
-
 
 	delete gameConfig;
 	return 0;
