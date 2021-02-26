@@ -26,8 +26,8 @@ bool xmlConfigLoader::loadCommon()
 		if (common)
 		{
 			common->QueryBoolAttribute("startMaximised", &m_gameConfig->startMaximised);
-			common->QueryFloatAttribute("lastWidth", &m_gameConfig->scrW);
-			common->QueryFloatAttribute("lastHeight", &m_gameConfig->scrH);
+			common->QueryFloatAttribute("lastWidth", &m_gameConfig->minScrW);
+			common->QueryFloatAttribute("lastHeight", &m_gameConfig->minScrH);
 			common->QueryIntAttribute("lastX", &m_gameConfig->scrX);
 			common->QueryIntAttribute("lastY", &m_gameConfig->scrY);
 			common->QueryBoolAttribute("alwaysOnTop", &m_gameConfig->alwaysOnTop);

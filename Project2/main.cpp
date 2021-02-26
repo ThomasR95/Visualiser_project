@@ -161,23 +161,18 @@ void initWindow(bool firstStart = false)
 		gameConfig->scrH = gameConfig->fullScrH;
 		if (!gameConfig->wasFullScreen || firstStart)
 		{
-			if (gameConfig->transparent || true)
+			if (firstStart)
 			{
-				if (firstStart)
-				{
-					gameConfig->m_window.create(sf::VideoMode(gameConfig->fullScrW, gameConfig->fullScrH), "VisualiStar", 0);
-				}
-				gameConfig->scrW = gameConfig->fullScrW + 1;
-				gameConfig->scrH = gameConfig->fullScrH + 1;
-				gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
-				gameConfig->m_window.setPosition({ 0,0 });
-				sf::View v = gameConfig->m_window.getView();
-				v.setSize({ gameConfig->scrW, gameConfig->scrH });
-				v.setCenter({ gameConfig->scrW / 2, gameConfig->scrH / 2 });
-				gameConfig->m_window.setView(v);
+				gameConfig->m_window.create(sf::VideoMode(gameConfig->fullScrW, gameConfig->fullScrH), "VisualiStar", 0);
 			}
-			else
-				gameConfig->m_window.create(sf::VideoMode(gameConfig->fullScrW, gameConfig->fullScrH), "VisualiStar", sf::Style::Fullscreen);
+			gameConfig->scrW = gameConfig->fullScrW + 1;
+			gameConfig->scrH = gameConfig->fullScrH + 1;
+			gameConfig->m_window.setSize({ (sf::Uint16)gameConfig->scrW, (sf::Uint16)gameConfig->scrH });
+			gameConfig->m_window.setPosition({ 0,0 });
+			sf::View v = gameConfig->m_window.getView();
+			v.setSize({ gameConfig->scrW, gameConfig->scrH });
+			v.setCenter({ gameConfig->scrW / 2, gameConfig->scrH / 2 });
+			gameConfig->m_window.setView(v);
 		}
 	}
 	else
@@ -224,13 +219,22 @@ void initWindow(bool firstStart = false)
 
 	gameConfig->m_window.setFramerateLimit(gameConfig->enableVSync? 60 : 200);
 
+	if (gameConfig->alwaysOnTop)
+	{
+		HWND hwnd = gameConfig->m_window.getSystemHandle();
+		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
 	if (gameConfig->transparent)
 	{
 		MARGINS margins;
 		margins.cxLeftWidth = -1;
 
-		SetWindowLong(gameConfig->m_window.getSystemHandle(), GWL_STYLE, WS_POPUP | WS_VISIBLE);
-		DwmExtendFrameIntoClientArea(gameConfig->m_window.getSystemHandle(), &margins);
+		HWND hwnd = gameConfig->m_window.getSystemHandle();
+		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+		SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+		DwmExtendFrameIntoClientArea(hwnd, &margins);
 	}
 
 	if (gameConfig->ico.getPixelsPtr())
@@ -279,12 +283,16 @@ void menuHelp(ImGuiStyle& style)
 		ImGui::NewLine();
 		ImGui::PopStyleColor();
 		ImGui::PushStyleColor(ImGuiCol_Text, { 0.3f,0.3f,0.3f,1.f });
-		ImGui::TextWrapped("PortAudio (c) 1999-2006 Ross Bencina and Phil Burk");
-		ImGui::TextWrapped("SFML (c) 2007-2020 Laurent Gomila");
-		ImGui::TextWrapped("Dear ImGui (c) 2014-2020 Omar Cornut");
-		ImGui::NewLine();
 
-		ImGui::TextWrapped("VisualiStar (c) 2018-2020 Thomas Rule");
+		auto timeNow = time(0);
+		auto timeStruct = std::localtime(&timeNow);
+		int year = timeStruct->tm_year + 1900;
+
+		ImGui::TextWrapped("PortAudio (c) 1999-2006 Ross Bencina and Phil Burk");
+		ImGui::TextWrapped("SFML (c) 2007-%d Laurent Gomila", year);
+		ImGui::TextWrapped("Dear ImGui (c) 2014-%d Omar Cornut", year);
+		ImGui::NewLine();
+		ImGui::TextWrapped("VisualiStar (c) 2018-%d Thomas Rule", year);
 		ImGui::PopStyleColor();
 		ImGui::Separator();
 		if (ImGui::Button("OK", { -1,20 }))
