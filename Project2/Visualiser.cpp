@@ -58,11 +58,31 @@ void Visualiser::getRandomColour(std::vector<float>& rgb)
 
 void Visualiser::getLoudnessColour(std::vector<float>& rgb, float soundLevel, float minLevel, float maxLevel)
 {
-	float factor = soundLevel / (maxLevel - minLevel);
+	float soundRange = maxLevel - minLevel;
+	float realLevel = (soundLevel - minLevel);
+	float factor = realLevel / soundRange;
 	factor = std::min(1.0f, std::max(0.0f, factor));
 
-	auto& col1 = gameConfig->gradCol1;
-	auto& col2 = gameConfig->gradCol2;
+	sf::Color col1 = gameConfig->gradCol1;
+	sf::Color col2 = gameConfig->gradCol2;
+	sf::Color colHalf = gameConfig->gradColHalf;
+
+	float lowHalf = soundRange*gameConfig->gradientMidPoint;
+	float highHalf = soundRange - lowHalf;
+
+	if (realLevel < lowHalf)
+	{
+		col2 = colHalf;
+		factor = realLevel / lowHalf;
+		factor = std::min(1.0f, std::max(0.0f, factor));
+	}
+	else
+	{
+		col1 = colHalf;
+		factor = (realLevel-lowHalf) / highHalf;
+		factor = std::min(1.0f, std::max(0.0f, factor));
+	}
+
 
 	rgb[0] = (float)(col1.r + (float)(col2.r - col1.r)*factor) / 255.f;
 	rgb[1] = (float)(col1.g + (float)(col2.g - col1.g)*factor) / 255.f;
@@ -72,7 +92,7 @@ void Visualiser::getLoudnessColour(std::vector<float>& rgb, float soundLevel, fl
 bool Visualiser::mainColourChange(std::vector<float>& rgb, float frameHi, float frameAverage, float frameMax)
 {
 	bool colourChanged = false;
-	if (gameConfig->gradientLoudness)
+	if (gameConfig->gradientLoudness && gameConfig->gradient)
 	{
 		getLoudnessColour(rgb, frameHi, 0.0f, frameMax);
 		colourChanged = true;

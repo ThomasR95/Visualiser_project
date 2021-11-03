@@ -1,5 +1,5 @@
 <Config>
-    <Common startMaximised="false" lastWidth="1102" lastHeight="531" alwaysOnTop="false" lastAudioDevice="3" lastX="244" lastY="284"/>
+    <Common startMaximised="false" lastWidth="958" lastHeight="895" alwaysOnTop="false" lastAudioDevice="1" lastX="461" lastY="83"/>
     <Presets>
         <Preset Name="Between2Screens" AffectsVisuals="true" AffectsWindow="true">
             <Gradient enabled="true" isLoudness="false" col1="4278190335" col2="3825139967"/>

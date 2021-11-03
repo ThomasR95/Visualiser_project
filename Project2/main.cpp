@@ -276,7 +276,7 @@ void menuHelp(ImGuiStyle& style)
 		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Exit VisualiStar:");		ImGui::SameLine(160); ImGui::TextWrapped("Closes the program.");
 		ImGui::NewLine();
 		ImGui::TextColored(style.Colors[ImGuiCol_Separator], "Window Controls:");
-		ImGui::TextWrapped("Drag from the top-left or bottom-right corner to resize the window.\nDrag with the middle mouse button to move the whole window.");
+		ImGui::TextWrapped("Drag from the top-left or bottom-right corner to resize the window.\nDrag with the middle mouse button, or use the move tab in the top centre, to move the whole window.");
 		ImGui::NewLine();
 		ImGui::NewLine();
 		ImGui::NewLine();
@@ -292,7 +292,7 @@ void menuHelp(ImGuiStyle& style)
 		ImGui::TextWrapped("SFML (c) 2007-%d Laurent Gomila", year);
 		ImGui::TextWrapped("Dear ImGui (c) 2014-%d Omar Cornut", year);
 		ImGui::NewLine();
-		ImGui::TextWrapped("VisualiStar (c) 2018-%d Thomas Rule", year);
+		ImGui::TextWrapped("VisualiStar (c) 2018-%d Tara Rule", year);
 		ImGui::PopStyleColor();
 		ImGui::Separator();
 		if (ImGui::Button("OK", { -1,20 }))
@@ -487,17 +487,34 @@ void menuVisOptions(ImGuiStyle& style)
 		ImGui::SameLine(0, 0);
 
 		auto pos1 = ImGui::GetCursorScreenPos();
-		auto pos2 = ImVec2(pos1.x + 130, pos1.y + 20);
+		auto pos2 = ImVec2(pos1.x + 130*gameConfig->gradientMidPoint, pos1.y + 20);
+		auto pos3 = ImVec2(pos1.x + 130*gameConfig->gradientMidPoint, pos1.y);
+		auto pos4 = ImVec2(pos1.x + 130, pos1.y + 20);
 		ImColor col1(gameConfig->gradCol1);
 		ImColor col2(gameConfig->gradCol2);
+		ImColor colHalf(gameConfig->gradColHalf);
 		ImDrawList* dList = ImGui::GetWindowDrawList();
-		dList->AddRectFilledMultiColor(pos1, pos2, col1, col2, col2, col1);
+		dList->AddRectFilledMultiColor(pos1, pos2, col1, colHalf, colHalf, col1);
+		dList->AddRectFilledMultiColor(pos3, pos4, colHalf, col2, col2, colHalf);
 		ImGui::SameLine(148);
 
 		if (ImGui::ColorButton("Colour 2", gameConfig->gradCol2, 0, { 10,20 }))
 		{
 			gameConfig->editingColour = &gameConfig->gradCol2;
 			ImGui::OpenPopup("ColPopup");
+		}
+
+		if (gameConfig->gradientLoudness)
+		{
+			ImGui::SetCursorScreenPos({ pos1.x, pos1.y + 14 });
+			ImGui::PushItemWidth(130);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0,0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
+			ImGui::PushID("Gradient Midpoint");
+			ImGui::SliderFloat("", &gameConfig->gradientMidPoint, 0.01, 0.99, "", 1.0f);
+			ImGui::PopStyleVar(2);
+			ImGui::PopID();
+			ImGui::PopItemWidth();
 		}
 
 		if (ImGui::BeginPopupContextItem("ColPopup"))
@@ -517,6 +534,12 @@ void menuVisOptions(ImGuiStyle& style)
 			}
 
 			ImGui::EndPopup();
+
+			gameConfig->gradColHalf = {
+				(sf::Uint8)(mean(gameConfig->gradCol1.r, gameConfig->gradCol2.r)),
+				(sf::Uint8)(mean(gameConfig->gradCol1.g, gameConfig->gradCol2.g)),
+				(sf::Uint8)(mean(gameConfig->gradCol1.b, gameConfig->gradCol2.b))
+			};
 		}
 	}
 	else
@@ -737,12 +760,12 @@ void menu()
 	ImGui::SFML::Update(gameConfig->m_window, gameConfig->m_timer.restart());
 
 	auto& style = ImGui::GetStyle();
-	style.FrameRounding = 5;
+	style.FrameRounding = 4;
 	style.WindowTitleAlign = style.ButtonTextAlign;
 
 	ImVec4 colA = gameConfig->gradCol1;
 	ImVec4 colB = gameConfig->gradCol2;
-	ImVec4 halfGrad(mean(colA.x, colB.x), mean(colA.y, colB.y), mean(colA.z, colB.z), 1.f );
+	ImVec4 halfGrad = gameConfig->gradColHalf;
 
 	ImVec4 col_dark(halfGrad.x*0.3f, halfGrad.y*0.3f, halfGrad.z*0.3f, 1.f);
 	ImVec4 col_med(halfGrad.x*0.5f, halfGrad.y*0.5f, halfGrad.z*0.5f, 1.f);
@@ -752,22 +775,34 @@ void menu()
 	ImVec4 col_light3(mean(halfGrad.x,1.f), mean(halfGrad.y, 1.f), mean(halfGrad.z, 1.f), 1.f);
 	ImVec4 greyoutCol(0.3, 0.3, 0.3, 1.0);
 
-	style.Colors[ImGuiCol_WindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
-	style.Colors[ImGuiCol_ChildWindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
-	style.Colors[ImGuiCol_PopupBg] = { 0.05f,0.05f,0.05f, 1.0f };
-	style.Colors[ImGuiCol_Button] = style.Colors[ImGuiCol_Header] = col_med;
-	style.Colors[ImGuiCol_ButtonActive] = style.Colors[ImGuiCol_HeaderActive] = col_light2;
+	style.Colors[ImGuiCol_WindowBg] = style.Colors[ImGuiCol_ChildWindowBg] = { 0.05f,0.05f,0.05f, 1.0f };
+	style.Colors[ImGuiCol_PopupBg] = { 0.08f,0.08f,0.08f, 1.0f };
+	style.Colors[ImGuiCol_FrameBg] = col_dark;
+	style.Colors[ImGuiCol_FrameBgActive] = style.Colors[ImGuiCol_Button] = style.Colors[ImGuiCol_Header] = style.Colors[ImGuiCol_SliderGrab] = col_med;
+	style.Colors[ImGuiCol_ButtonActive] = style.Colors[ImGuiCol_HeaderActive] = style.Colors[ImGuiCol_SliderGrabActive] = col_light2;
 	style.Colors[ImGuiCol_ButtonHovered] = style.Colors[ImGuiCol_HeaderHovered] = col_light;
 	style.Colors[ImGuiCol_TitleBgActive] = style.Colors[ImGuiCol_TitleBg] = style.Colors[ImGuiCol_TitleBgCollapsed] = col_dark;
 	style.Colors[ImGuiCol_Text] = col_light3;
 	style.Colors[ImGuiCol_TextDisabled] = greyoutCol;
 	style.Colors[ImGuiCol_Separator] = col_light2a;
+	 
 	style.WindowTitleAlign = { 0.5f, 0.5f };
-	style.AntiAliasedLines = true;
 
+	if (!gameConfig->isFullScreen)
+	{
+		// Move tab in the top centre
+		ImGui::SetNextWindowPos({ gameConfig->scrW / 2 - 40, 0 });
+		ImGui::SetNextWindowSize(gameConfig->moveTabSize);
+
+		ImGui::Begin("move_tab", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+		ImGui::SetCursorPos({ gameConfig->moveTabSize.x / 2 - 12,4 });
+		ImGui::Image(gameConfig->moveIconSprite, sf::Vector2f(24, 24), col_light3);
+		ImGui::End();
+	}
+
+	// Main menu window
 	ImGui::SetNextWindowPosCenter();
 	ImGui::SetNextWindowSize({ 480, -1 });
-
 	ImGui::Begin("VisualiStar", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
 
 	ImDrawList* dList = ImGui::GetWindowDrawList();
@@ -957,6 +992,12 @@ void handleEvents()
 
 				if (pos.x > gameConfig->scrW - 20 && pos.y > gameConfig->scrH - 20)
 					gameConfig->cornerGrabbed = { false, true };
+
+				if (pos.x > (gameConfig->scrW / 2 - gameConfig->moveTabSize.x / 2) && pos.x < (gameConfig->scrW / 2 + gameConfig->moveTabSize.x / 2) 
+					&& pos.y < gameConfig->moveTabSize.y)
+				{
+					gameConfig->moveGrabbed = true;
+				}
 			}
 		}
 		else if ((evt.type == evt.KeyPressed && evt.key.code == sf::Keyboard::Escape) || (evt.type == evt.MouseButtonPressed && sf::Mouse::isButtonPressed(sf::Mouse::Right)))
@@ -994,6 +1035,7 @@ void handleEvents()
 				gameConfig->m_currentVis->reloadShader();
 			}
 			gameConfig->lastMiddleClickPosition = sf::Vector2i(-1, -1);
+			gameConfig->moveGrabbed = false;
 		}
 		else if (evt.type == evt.MouseMoved)
 		{
@@ -1009,6 +1051,14 @@ void handleEvents()
 				gameConfig->bottomRightBox.setPosition({ pos.x - 20, pos.y - 20 });
 				gameConfig->resizeBox.setPosition(0, 0);
 				gameConfig->resizeBox.setSize({ pos.x, pos.y });
+			}
+			else if (gameConfig->moveGrabbed)
+			{
+				auto mousePos = sf::Mouse::getPosition();
+				auto windowPos = mousePos - sf::Vector2i(gameConfig->scrW / 2, gameConfig->moveTabSize.y / 2);
+				gameConfig->scrX = windowPos.x;
+				gameConfig->scrY = windowPos.y;
+				gameConfig->m_window.setPosition(windowPos);
 			}
 			else if (sf::Mouse::isButtonPressed(sf::Mouse::Middle) && !gameConfig->isFullScreen)
 			{
@@ -1109,6 +1159,9 @@ int main()
 
 	gameConfig->ico.loadFromFile("icon1.png");
 	gameConfig->m_settingsFileBoxName.resize(30);
+
+	gameConfig->moveIcon.loadFromFile("move.png");
+	gameConfig->moveIconSprite.setTexture(gameConfig->moveIcon, true);
 
 	initWindow(true);
 	ImGui::SFML::Init(gameConfig->m_window);
@@ -1266,14 +1319,20 @@ int main()
 		{
 			gameConfig->quietTimer.restart();
 		}
-		else if (gameConfig->quietTimer.getElapsedTime().asSeconds() > 1.5)
+		else if (gameConfig->quietTimer.getElapsedTime().asSeconds() > 0.3)
 		{
-			//if the quietTimer reaches 1.5s, reset the max
+			//if the quietTimer reaches 1.5s, start reducing the max
 
-			gameConfig->frameMax = (std::max)(gameConfig->runningAverage, gameConfig->cutoff * 2);
-			gameConfig->bassMax = (std::max)(gameConfig->bassAverage, gameConfig->cutoff * 2);
-			gameConfig->trebleMax = (std::max)(gameConfig->trebleAverage, gameConfig->cutoff * 2);
-			gameConfig->quietTimer.restart();
+			float maxFallSpeed = 0.01;
+
+			//gameConfig->frameMax = (std::max)(gameConfig->runningAverage, gameConfig->cutoff * 2);
+			//gameConfig->bassMax = (std::max)(gameConfig->bassAverage, gameConfig->cutoff * 2);
+			//gameConfig->trebleMax = (std::max)(gameConfig->trebleAverage, gameConfig->cutoff * 2);
+			//gameConfig->quietTimer.restart();
+
+			gameConfig->frameMax -= (gameConfig->frameMax-(gameConfig->cutoff * 2))*maxFallSpeed;
+			gameConfig->bassMax -= (gameConfig->bassMax - (gameConfig->cutoff * 2))*maxFallSpeed;
+			gameConfig->trebleMax -= (gameConfig->trebleMax - (gameConfig->cutoff * 2))*maxFallSpeed;
 		}
 
 		handleEvents();

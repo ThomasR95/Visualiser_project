@@ -122,8 +122,10 @@ struct Config
 
 	bool gradient = false;
 	bool gradientLoudness = false;
-	sf::Color gradCol1 = { 255,0,0,255 };
-	sf::Color gradCol2 = { 0,0,255,255 };
+	sf::Color gradCol1 = { 0,0,255,255 };
+	sf::Color gradCol2 = { 255,0,0,255 };
+	sf::Color gradColHalf = { 128,0,128,255 };
+	float gradientMidPoint = 0.3f;
 
 	std::shared_ptr<sf::Image> backgroundImage;
 	std::shared_ptr<sf::Texture> backgroundTexture;
@@ -133,6 +135,9 @@ struct Config
 #pragma region Menu settings
 	//UI stuff
 	sf::Image ico;
+	sf::Texture moveIcon;
+	sf::Sprite moveIconSprite;
+	sf::Vector2f moveTabSize = { 80,32 };
 
 	bool menuShowing = false;
 	bool advancedMenuShowing = false;
@@ -145,6 +150,7 @@ struct Config
 	sf::RectangleShape bottomRightBox;
 	sf::RectangleShape resizeBox;
 	std::pair<bool, bool> cornerGrabbed = { false, false };
+	bool moveGrabbed = false;
 	sf::Vector2i lastMiddleClickPosition = { -1, -1 };
 
 	sf::Clock m_timer;

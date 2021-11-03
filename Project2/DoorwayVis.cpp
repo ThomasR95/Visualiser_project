@@ -118,7 +118,7 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 
 	sf::Color col((sf::Uint8)(rgb[0] * 255*scale), (sf::Uint8)(rgb[1] * 255*scale), (sf::Uint8)(rgb[2] * 255*scale), sf::Uint8(150 * scale));
 	auto col2 = col;
-	col2.a -= 60;
+	col2.a -= 70;
 	m_leftBox.setFillColor(col);
 	m_rightBox.setFillColor(col);
 	m_topBox.setFillColor(col2);
@@ -131,6 +131,7 @@ void DoorwayVis::render(float frameHi, float frameAverage, float frameMax, sf::T
 	m_RT->draw(m_skyPlane);
 	m_RT->draw(m_shaderPlane, states);
 
+	m_waveform.setColour({ (sf::Uint8)(rgb[0]*255), (sf::Uint8)(rgb[1]*255), (sf::Uint8)(rgb[2]*255) });
 	m_waveform.update(gameConfig);
 
 	m_waveform.rotation(0);
